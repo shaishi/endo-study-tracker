@@ -159,10 +159,26 @@ export const LoginGate: React.FC<LoginGateProps> = ({
               
               <div className="text-right space-y-1">
                 <h3 className="text-2xl font-extrabold text-white">כניסה למערכת המעקב</h3>
-                <p className="text-xs text-slate-400">בחר דרך התחברות כדי להתחיל או להמשיך ברצף</p>
+                <p className="text-xs text-slate-400">כנס מידית במצב מקומי או התחבר לסנכרון ענן בין מכשירים</p>
               </div>
 
-              {/* 1. Google One-Click Sign In */}
+              {/* Direct Local / Guest Entry Button (1-Click Primary Action) */}
+              <button
+                onClick={onContinueAsGuest}
+                className="w-full flex items-center justify-between py-3.5 px-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-extrabold text-sm transition shadow-lg shadow-indigo-600/30"
+              >
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-indigo-200" />
+                  <span>כניסה מיידית למערכת המעקב</span>
+                </div>
+                <ArrowLeft className="w-4 h-4 text-indigo-200" />
+              </button>
+
+              <div className="flex items-center my-3 text-slate-500 text-[11px]">
+                <div className="flex-1 border-t border-slate-800"></div>
+                <span className="px-3">או להתחברות ענן מרובת מכשירים</span>
+                <div className="flex-1 border-t border-slate-800"></div>
+              </div>
               <button
                 onClick={handleGoogleClick}
                 disabled={isSubmitting || isLoading}

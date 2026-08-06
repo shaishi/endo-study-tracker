@@ -331,7 +331,11 @@ export function useEndoTracker() {
       console.error('Google Sign In Error:', err);
       let msg = err.message || 'שגיאה בהתחברות';
       if (msg.includes('api-key-not-valid') || msg.includes('invalid-api-key')) {
-        msg = 'מפתח ה-Firebase API אינו תקין או טרם הוגדר. ניתן להמשיך במצב אורח מקומי בעזרת הכפתור למטה!';
+        msg = 'מפתח ה-Firebase API אינו תקין. ניתן להמשיך בלחיצה על כניסה מיידית למערכת!';
+      } else if (msg.includes('operation-not-allowed')) {
+        msg = 'ספק ההתחברות (Google/Email) טרם הופעל ב-Firebase Console. לחץ על "כניסה מיידית למערכת המעקב" בכפתור למעלה לשימוש מיידי!';
+      } else if (msg.includes('unauthorized-domain')) {
+        msg = 'הדומיין של האתר טרם אושר ב-Firebase Authorized Domains. לחץ על "כניסה מיידית למערכת המעקב" בכפתור למעלה!';
       }
       return { success: false, error: msg };
     } finally {
