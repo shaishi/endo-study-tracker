@@ -17,7 +17,8 @@ import {
   Award,
   ShieldCheck,
   Bandage,
-  Timer
+  Timer,
+  Stethoscope
 } from 'lucide-react';
 import type { User } from 'firebase/auth';
 
@@ -64,6 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'flashcards', label: 'כרטיסיות', icon: Brain },
     { id: 'cheatsheets', label: 'דפי סיכום', icon: FileSpreadsheet },
     { id: 'quiz', label: 'סימולטור', icon: Award },
+    { id: 'protocols', label: 'פרוטוקולים 🩺', icon: Stethoscope },
     { id: 'trauma', label: 'מחשבון טראומה', icon: Bandage },
   ];
 

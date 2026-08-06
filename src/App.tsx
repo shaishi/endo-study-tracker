@@ -21,6 +21,7 @@ import { QuizSimulatorView } from './components/QuizSimulatorView';
 import { AdminView } from './components/AdminView';
 import { FocusTimerModal } from './components/FocusTimerModal';
 import { TraumaDecisionTree } from './components/TraumaDecisionTree';
+import { ClinicalProtocolsView } from './components/ClinicalProtocolsView';
 
 const data = rawData as EndoData;
 
@@ -161,6 +162,10 @@ export function App() {
 
         {activeTab === 'trauma' && (
           <TraumaDecisionTree />
+        )}
+
+        {activeTab === 'protocols' && (
+          <ClinicalProtocolsView />
         )}
 
         {activeTab === 'literature' && (
