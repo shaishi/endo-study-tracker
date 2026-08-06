@@ -75,43 +75,70 @@ export function useEndoTracker() {
   useEffect(() => {
     if (!currentUser || !isFirebaseConfigured) return;
 
-    setCloudSyncStatus('syncing');
-    const userDocRef = doc(db, 'users', currentUser.uid);
+    let unsubscribeSnapshot: (() => void) | null = null;
 
-    const unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const remoteData = docSnap.data() as UserState;
-        setUserState(prev => ({
-          ...defaultState,
-          ...prev,
-          ...remoteData
-        }));
-        setCloudSyncStatus('synced');
-      } else {
-        // Document doesn't exist yet, save current local state to cloud
-        setDoc(userDocRef, userState, { merge: true })
-          .then(() => setCloudSyncStatus('synced'))
-          .catch(() => setCloudSyncStatus('error'));
-      }
-    }, (err) => {
-      console.warn('Firestore snapshot error (operating in offline/local mode):', err);
+    try {
+      setCloudSyncStatus('syncing');
+      const userDocRef = doc(db, 'users', currentUser.uid);
+
+      unsubscribeSnapshot = onSnapshot(
+        userDocRef, 
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const remoteData = docSnap.data() as UserState;
+            setUserState(prev => ({
+              ...defaultState,
+              ...prev,
+              ...remoteData
+            }));
+            setCloudSyncStatus('synced');
+          } else {
+            // Document doesn't exist yet, save current local state to cloud
+            setDoc(userDocRef, userState, { merge: true })
+              .then(() => setCloudSyncStatus('synced'))
+              .catch((err) => {
+                console.warn('Firestore setDoc warning:', err);
+                setCloudSyncStatus('offline');
+              });
+          }
+        }, 
+        (err) => {
+          console.warn('Firestore listener error (falling back to local mode):', err);
+          setCloudSyncStatus('offline');
+        }
+      );
+    } catch (err) {
+      console.warn('Firestore initialization error:', err);
       setCloudSyncStatus('offline');
-    });
+    }
 
-    return () => unsubscribeSnapshot();
+    return () => {
+      if (unsubscribeSnapshot) {
+        try {
+          unsubscribeSnapshot();
+        } catch (e) {
+          // ignore shutdown errors
+        }
+      }
+    };
   }, [currentUser?.uid]);
 
   // Save state to Firestore on update if user is authenticated
   const saveStateToCloud = useCallback((newState: UserState) => {
     if (!currentUser || !isFirebaseConfigured) return;
-    setCloudSyncStatus('syncing');
-    const userDocRef = doc(db, 'users', currentUser.uid);
-    setDoc(userDocRef, newState, { merge: true })
-      .then(() => setCloudSyncStatus('synced'))
-      .catch((err) => {
-        console.warn('Cloud sync save warning:', err);
-        setCloudSyncStatus('offline');
-      });
+    try {
+      setCloudSyncStatus('syncing');
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      setDoc(userDocRef, newState, { merge: true })
+        .then(() => setCloudSyncStatus('synced'))
+        .catch((err) => {
+          console.warn('Cloud sync save warning:', err);
+          setCloudSyncStatus('offline');
+        });
+    } catch (err) {
+      console.warn('Cloud sync save exception:', err);
+      setCloudSyncStatus('offline');
+    }
   }, [currentUser]);
 
   // Wrapper function to update state locally and in cloud
