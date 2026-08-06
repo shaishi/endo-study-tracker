@@ -15,6 +15,10 @@ import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { AuthModal } from './components/AuthModal';
 import { LoginGate } from './components/LoginGate';
 
+import { FlashcardsView } from './components/FlashcardsView';
+import { CheatSheetsView } from './components/CheatSheetsView';
+import { QuizSimulatorView } from './components/QuizSimulatorView';
+
 const data = rawData as EndoData;
 
 export function App() {
@@ -29,6 +33,8 @@ export function App() {
     cloudSyncStatus,
     isSyncing,
     toggleTheme,
+    rateFlashcard,
+    recordQuizScore,
     toggleLiteratureItem,
     toggleWeekChapter,
     toggleReviewFlag,
@@ -128,6 +134,24 @@ export function App() {
             toggleWeekChapter={toggleWeekChapter}
             toggleReviewFlag={toggleReviewFlag}
             updateNote={updateNote}
+          />
+        )}
+
+        {activeTab === 'flashcards' && (
+          <FlashcardsView
+            userState={userState}
+            rateFlashcard={rateFlashcard}
+          />
+        )}
+
+        {activeTab === 'cheatsheets' && (
+          <CheatSheetsView />
+        )}
+
+        {activeTab === 'quiz' && (
+          <QuizSimulatorView
+            userState={userState}
+            recordQuizScore={recordQuizScore}
           />
         )}
 

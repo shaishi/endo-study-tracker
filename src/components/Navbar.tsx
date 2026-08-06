@@ -10,7 +10,10 @@ import {
   Flame,
   Cloud,
   Sun,
-  Moon
+  Moon,
+  Brain,
+  FileSpreadsheet,
+  Award
 } from 'lucide-react';
 import type { User } from 'firebase/auth';
 
@@ -46,7 +49,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navItems = [
     { id: 'today', label: 'היום', icon: Calendar },
     { id: 'weeks', label: 'תוכנית 12 השבועות', icon: BookOpen },
-    { id: 'literature', label: 'ספרות חובה (266)', icon: FileText },
+    { id: 'flashcards', label: 'כרטיסיות זהב 📇', icon: Brain },
+    { id: 'cheatsheets', label: 'דפי סיכום 📊', icon: FileSpreadsheet },
+    { id: 'quiz', label: 'סימולטור ⏱️', icon: Award },
+    { id: 'literature', label: 'ספרות (266)', icon: FileText },
     { id: 'books', label: 'ספרים (7)', icon: Book },
     { id: 'dashboard', label: 'לוח מחוונים', icon: BarChart3 },
     { id: 'settings', label: 'הגדרות', icon: Settings },

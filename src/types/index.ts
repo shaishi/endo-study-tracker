@@ -54,6 +54,8 @@ export interface UserState {
   dailyActivityLog: Record<string, number>; // "YYYY-MM-DD" => count checked on that date
   maxDailyUnitsThreshold: number;
   theme?: 'dark' | 'light';
+  flashcardProgress?: Record<number, 'easy' | 'medium' | 'hard'>; // flashcardId -> difficulty
+  quizScores?: Array<{ date: string; score: number; total: number }>;
   lastActiveDate: string | null;
   currentStreak: number;
   bestStreak: number;

@@ -424,6 +424,27 @@ export function useEndoTracker() {
     }));
   }, [updateStateAndSync]);
 
+  const rateFlashcard = useCallback((cardId: number, rating: 'easy' | 'medium' | 'hard') => {
+    updateStateAndSync(prev => ({
+      ...prev,
+      flashcardProgress: {
+        ...(prev.flashcardProgress || {}),
+        [cardId]: rating
+      }
+    }));
+  }, [updateStateAndSync]);
+
+  const recordQuizScore = useCallback((score: number, total: number) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    updateStateAndSync(prev => ({
+      ...prev,
+      quizScores: [
+        ...(prev.quizScores || []),
+        { date: todayStr, score, total }
+      ]
+    }));
+  }, [updateStateAndSync]);
+
   return {
     userState,
     currentUser,
@@ -431,6 +452,8 @@ export function useEndoTracker() {
     isSyncing,
     isFirebaseConfigured,
     toggleTheme,
+    rateFlashcard,
+    recordQuizScore,
     toggleLiteratureItem,
     toggleWeekChapter,
     toggleReviewFlag,
