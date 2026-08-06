@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAeOQQhZ9oC5T-Gze76J4h549Q_S9g2rOU";
@@ -26,6 +26,15 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+// Set auth persistence to browserLocalPersistence (localStorage) to avoid IndexedDB 'Database is closing/hidden' errors
+try {
+  setPersistence(auth, browserLocalPersistence).catch((err) => {
+    console.warn('Set persistence warning:', err);
+  });
+} catch (err) {
+  console.warn('Set persistence exception:', err);
+}
 
 let dbInstance: Firestore | null = null;
 try {

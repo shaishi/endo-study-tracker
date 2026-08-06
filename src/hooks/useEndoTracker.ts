@@ -4,6 +4,9 @@ import { auth, db, googleProvider, isFirebaseConfigured } from '../firebase';
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
+  signInWithRedirect,
+  setPersistence,
+  browserLocalPersistence,
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut
@@ -320,11 +323,12 @@ export function useEndoTracker() {
     if (!isFirebaseConfigured) {
       return { 
         success: false, 
-        error: 'טרם הוגדר מפתח Firebase API תקין. עליך להגדיר מפתח ב-Vercel, או ללחוץ על "המשך במצב אורח מקומי" לשימוש מיידי!' 
+        error: 'טרם הוגדר מפתח Firebase API תקין.' 
       };
     }
     try {
       setIsSyncing(true);
+      await setPersistence(auth, browserLocalPersistence);
       await signInWithPopup(auth, googleProvider);
       return { success: true };
     } catch (err: any) {
@@ -333,15 +337,27 @@ export function useEndoTracker() {
       const errMsg = err.message || '';
       const currentHost = typeof window !== 'undefined' ? window.location.hostname : '';
 
+      // Fallback: If popup fails due to IndexedDB closure or popup block, try signInWithRedirect
+      if (errMsg.includes('Database is closing') || errMsg.includes('hidden') || errCode.includes('popup-blocked')) {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return { success: true };
+        } catch (redirectErr: any) {
+          console.error('Redirect Fallback Error:', redirectErr);
+        }
+      }
+
       let msg = errMsg || 'שגיאה בהתחברות';
       if (errCode.includes('unauthorized-domain') || errMsg.includes('unauthorized-domain')) {
-        msg = `הדומיין ${currentHost} טרם אושר ב-Firebase. יש להוסיף את הדומיין המדויק: ${currentHost} לרשימת Authorized Domains ב-Firebase Console.`;
+        msg = `הדומיין ${currentHost} טרם אושר ב-Firebase Authorized Domains. יש להוסיף אותו ב-Firebase Console.`;
       } else if (errCode.includes('operation-not-allowed') || errMsg.includes('operation-not-allowed')) {
         msg = 'ספק ההתחברות של Google טרם הופעל ב-Firebase Console (Authentication -> Sign-in method -> Google -> Enable).';
       } else if (errCode.includes('api-key-not-valid') || errMsg.includes('api-key-not-valid')) {
         msg = 'מפתח ה-Firebase API אינו תקין.';
+      } else if (errMsg.includes('Database is closing') || errMsg.includes('hidden')) {
+        msg = 'דפדפן זה חוסם אחסון IndexedDB (מצב פרטי / Safari). האתר פועל באופן מלא בלחיצה על "כניסה מיידית למערכת המעקב"!';
       } else {
-        msg = `שגיאת Firebase [${errCode}]: ${errMsg} (דומיין נוכחי: ${currentHost})`;
+        msg = `שגיאת Firebase [${errCode}]: ${errMsg} (דומיין: ${currentHost})`;
       }
       return { success: false, error: msg };
     } finally {
