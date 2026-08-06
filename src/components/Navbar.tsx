@@ -14,7 +14,8 @@ import {
   Moon,
   Brain,
   FileSpreadsheet,
-  Award
+  Award,
+  ShieldCheck
 } from 'lucide-react';
 import type { User } from 'firebase/auth';
 
@@ -63,6 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const trackingItems = [
     { id: 'dashboard', label: 'לוח מחוונים', icon: BarChart3 },
+    { id: 'admin', label: 'מנהל 👑', icon: ShieldCheck },
     { id: 'settings', label: 'הגדרות', icon: Settings },
   ];
 

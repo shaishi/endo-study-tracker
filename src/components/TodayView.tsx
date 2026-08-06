@@ -119,6 +119,39 @@ export const TodayView: React.FC<TodayViewProps> = ({
         </div>
       </div>
 
+      {/* Daily Active Recall Warmup Card */}
+      <div className="glass-card rounded-2xl p-5 border border-indigo-500/30 bg-gradient-to-r from-indigo-950/60 via-slate-900 to-slate-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-white shrink-0 shadow-md">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-extrabold text-white text-sm sm:text-base flex items-center gap-2">
+              <span>חימום יומי אדפטיבי (Daily Active Recall)</span>
+              <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">מומלץ 3 דקות</span>
+            </h4>
+            <p className="text-xs text-slate-300 mt-0.5">
+              חזור על שאלות מפתח קלאסיות מכרטיסיות הזהב או תרגל שאלות בחינה בסימולטור לפני תחילת משימות היום!
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => setActiveTab('flashcards')}
+            className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition shadow-md whitespace-nowrap"
+          >
+            כרטיסיות זהב 📇
+          </button>
+          <button
+            onClick={() => setActiveTab('quiz')}
+            className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700 whitespace-nowrap"
+          >
+            סימולטור שאלות ⏱️
+          </button>
+        </div>
+      </div>
+
       {/* Pace Warning Banner */}
       {schedule.isHighPace && (
         <div className="bg-amber-950/40 border border-amber-500/40 rounded-2xl p-5 text-amber-200 backdrop-blur-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-amber-950/20">

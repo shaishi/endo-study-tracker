@@ -18,6 +18,7 @@ import { LoginGate } from './components/LoginGate';
 import { FlashcardsView } from './components/FlashcardsView';
 import { CheatSheetsView } from './components/CheatSheetsView';
 import { QuizSimulatorView } from './components/QuizSimulatorView';
+import { AdminView } from './components/AdminView';
 
 const data = rawData as EndoData;
 
@@ -178,6 +179,12 @@ export function App() {
         {activeTab === 'dashboard' && (
           <DashboardView
             data={data}
+            userState={userState}
+          />
+        )}
+
+        {activeTab === 'admin' && (
+          <AdminView
             userState={userState}
           />
         )}

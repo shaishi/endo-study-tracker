@@ -84,3 +84,15 @@ export interface ScheduleCalculation {
   isHighPace: boolean;
   effectiveTargetDate: string;
 }
+
+export interface ResidentProfile {
+  uid: string;
+  email: string;
+  displayName?: string;
+  lastActive: string;
+  completedCount: number;
+  progressPercent: number;
+  currentStreak: number;
+  role: 'admin' | 'resident';
+  status: 'active' | 'suspended';
+}
