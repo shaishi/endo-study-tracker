@@ -185,6 +185,7 @@ export function App() {
           <DashboardView
             data={data}
             userState={userState}
+            setActiveTab={setActiveTab}
           />
         )}
 

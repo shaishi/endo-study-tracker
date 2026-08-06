@@ -9,15 +9,18 @@ import {
   Calendar
 } from 'lucide-react';
 import type { EndoData, UserState } from '../types';
+import { BoardReadinessWidget } from './BoardReadinessWidget';
 
 interface DashboardViewProps {
   data: EndoData;
   userState: UserState;
+  setActiveTab?: (tab: string) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   data,
   userState,
+  setActiveTab = () => {},
 }) => {
   // Compute overall stats
   const totalLit = data.literature.length;
@@ -82,6 +85,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           תמונת מצב מקיפה על עמידה ביעדי הלמידה, התפלגות קטגוריות ורצף פעילות
         </p>
       </div>
+
+      {/* Board Readiness Predictor Score Widget */}
+      <BoardReadinessWidget userState={userState} data={data} setActiveTab={setActiveTab} />
 
       {/* Top Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
