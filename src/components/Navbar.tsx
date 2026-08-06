@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   Bandage,
   Timer,
-  Stethoscope
+  Stethoscope,
+  ChevronDown
 } from 'lucide-react';
 import type { User } from 'firebase/auth';
 
@@ -53,40 +54,41 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const isLight = theme === 'light';
   const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-  const coreNavItems = [
-    { id: 'today', label: 'היום', icon: Calendar },
-    { id: 'weeks', label: '12 שבועות', icon: CheckCircle2 },
-    { id: 'literature', label: 'ספרות (266)', icon: FileText },
-    { id: 'books', label: 'ספרים (7)', icon: Book },
-  ];
-
-  const activeLearningItems = [
-    { id: 'flashcards', label: 'כרטיסיות', icon: Brain },
-    { id: 'cheatsheets', label: 'דפי סיכום', icon: FileSpreadsheet },
-    { id: 'quiz', label: 'סימולטור', icon: Award },
-    { id: 'protocols', label: 'פרוטוקולים 🩺', icon: Stethoscope },
-    { id: 'trauma', label: 'מחשבון טראומה', icon: Bandage },
-  ];
-
   const isAdmin = !currentUser || currentUser.email === 'shai.shilo@gmail.com';
 
-  const trackingItems = [
+  const [activeDropdown, setActiveDropdown] = useState<'curriculum' | 'tools' | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const curriculumItems = [
+    { id: 'today', label: 'משימות להיום 📅', icon: Calendar, desc: 'תוכנית לימוד יומית אדפטיבית' },
+    { id: 'weeks', label: 'תוכנית 12 השבועות', icon: CheckCircle2, desc: 'ספרינט הכנה מובנה' },
+    { id: 'literature', label: 'ספרות חובה (266)', icon: FileText, desc: 'מאמרים קלאסיים והנחיות' },
+    { id: 'books', label: 'ספרי לימוד (7)', icon: Book, desc: 'Cohen, Pathways, Gutmann' },
+  ];
+
+  const clinicalToolItems = [
+    { id: 'protocols', label: 'פרוטוקולים קליניים 🩺', icon: Stethoscope, desc: 'Pulp Capping, Pulpotomy, RCT, Revascularization' },
+    { id: 'trauma', label: 'מחשבון טראומה 🩹', icon: Bandage, desc: 'AAE / IADT 2020 Guidelines' },
+    { id: 'quiz', label: 'סימולטור שאלות ⚡', icon: Award, desc: 'בנק שאלות וניתוח טעויות' },
+    { id: 'flashcards', label: 'כרטיסיות זיכרון', icon: Brain, desc: 'שינון חזרה מרווחת Spaced Repetition' },
+    { id: 'cheatsheets', label: 'דפי סיכום וטבלאות', icon: FileSpreadsheet, desc: 'טבלאות השוואה ואנטומיה' },
+  ];
+
+  const allNavItems = [...curriculumItems, ...clinicalToolItems, 
     { id: 'dashboard', label: 'לוח מחוונים', icon: BarChart3 },
     ...(isAdmin ? [{ id: 'admin', label: 'מנהל 👑', icon: ShieldCheck }] : []),
     { id: 'settings', label: 'הגדרות', icon: Settings },
   ];
 
-  const allNavItems = [...coreNavItems, ...activeLearningItems, ...trackingItems];
-
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isCurriculumActive = ['today', 'weeks', 'literature', 'books'].includes(activeTab);
+  const isToolsActive = ['protocols', 'trauma', 'quiz', 'flashcards', 'cheatsheets'].includes(activeTab);
 
   return (
     <>
       <header className={`sticky top-0 z-40 w-full backdrop-blur-xl transition-colors duration-200 border-b ${
         isLight 
-          ? 'bg-white/90 border-slate-200 shadow-sm text-slate-900' 
-          : 'bg-slate-900/90 border-slate-800 text-slate-100'
+          ? 'bg-white/95 border-slate-200 shadow-sm text-slate-900' 
+          : 'bg-slate-900/95 border-slate-800 text-slate-100'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-3">
@@ -106,87 +108,193 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             </div>
 
-            {/* Desktop Nav Bar (LG+ screens) */}
-            <nav className={`hidden lg:flex items-center gap-1 p-1.5 rounded-2xl border transition-colors ${
+            {/* Compact Desktop Navigation Bar (LG+ screens) */}
+            <nav className={`hidden md:flex items-center gap-1.5 p-1.5 rounded-2xl border transition-colors ${
               isLight 
                 ? 'bg-slate-100/90 border-slate-200/80' 
                 : 'bg-slate-950/70 border-slate-800'
             }`}>
-              {/* Group 1: Core Schedule */}
-              <div className="flex items-center gap-1 px-1">
-                {coreNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                        isActive
-                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-bold'
-                          : isLight
-                            ? 'text-slate-700 hover:text-indigo-600 hover:bg-slate-200/70'
-                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
+              
+              {/* Main Tab 1: Today */}
+              <button
+                onClick={() => {
+                  setActiveTab('today');
+                  setActiveDropdown(null);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'today'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                    : isLight
+                      ? 'text-slate-700 hover:bg-slate-200/80'
+                      : 'text-slate-300 hover:bg-slate-800/80'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>היום</span>
+              </button>
+
+              {/* Main Dropdown 2: Curriculum & Reading */}
+              <div className="relative">
+                <button
+                  onClick={() => setActiveDropdown(activeDropdown === 'curriculum' ? null : 'curriculum')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    isCurriculumActive && activeTab !== 'today'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                      : isLight
+                        ? 'text-slate-700 hover:bg-slate-200/80'
+                        : 'text-slate-300 hover:bg-slate-800/80'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>תוכנית וספרות</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown === 'curriculum' ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Curriculum Dropdown Menu */}
+                {activeDropdown === 'curriculum' && (
+                  <div 
+                    className={`absolute right-0 mt-2 w-64 rounded-2xl border shadow-2xl p-2 z-50 animate-fadeIn ${
+                      isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-white'
+                    }`}
+                    onMouseLeave={() => setActiveDropdown(null)}
+                  >
+                    {curriculumItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            setActiveDropdown(null);
+                          }}
+                          className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl text-right transition ${
+                            isActive
+                              ? 'bg-indigo-600 text-white font-bold'
+                              : isLight
+                                ? 'hover:bg-slate-100'
+                                : 'hover:bg-slate-800/80'
+                          }`}
+                        >
+                          <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-white' : 'text-indigo-400'}`} />
+                          <div>
+                            <div className="text-xs font-bold">{item.label}</div>
+                            <div className={`text-[10px] ${isActive ? 'text-indigo-100' : 'text-slate-400'}`}>{item.desc}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              <div className={`w-px h-5 mx-0.5 ${isLight ? 'bg-slate-300' : 'bg-slate-800'}`}></div>
+              {/* Main Dropdown 3: Clinical Tools */}
+              <div className="relative">
+                <button
+                  onClick={() => setActiveDropdown(activeDropdown === 'tools' ? null : 'tools')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    isToolsActive
+                      ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md'
+                      : isLight
+                        ? 'text-slate-700 hover:bg-slate-200/80'
+                        : 'text-slate-300 hover:bg-slate-800/80'
+                  }`}
+                >
+                  <Stethoscope className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>כלים קליניים ⚡</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown === 'tools' ? 'rotate-180' : ''}`} />
+                </button>
 
-              {/* Group 2: Active Learning & Clinical Tools */}
-              <div className="flex items-center gap-1 px-1">
-                {activeLearningItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                        isActive
-                          ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md font-bold'
-                          : isLight
-                            ? 'text-indigo-700 hover:text-indigo-900 hover:bg-indigo-50/80 font-bold'
-                            : 'text-cyan-300/90 hover:text-white hover:bg-slate-800/80'
-                      }`}
-                    >
-                      <Icon className={`w-3.5 h-3.5 ${isLight ? 'text-indigo-600' : 'text-cyan-400'}`} />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
+                {/* Clinical Tools Dropdown Menu */}
+                {activeDropdown === 'tools' && (
+                  <div 
+                    className={`absolute right-0 mt-2 w-72 rounded-2xl border shadow-2xl p-2 z-50 animate-fadeIn ${
+                      isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-white'
+                    }`}
+                    onMouseLeave={() => setActiveDropdown(null)}
+                  >
+                    {clinicalToolItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            setActiveDropdown(null);
+                          }}
+                          className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl text-right transition ${
+                            isActive
+                              ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-bold'
+                              : isLight
+                                ? 'hover:bg-slate-100'
+                                : 'hover:bg-slate-800/80'
+                          }`}
+                        >
+                          <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isActive ? 'text-white' : 'text-cyan-400'}`} />
+                          <div>
+                            <div className="text-xs font-bold">{item.label}</div>
+                            <div className={`text-[10px] ${isActive ? 'text-indigo-100' : 'text-slate-400'}`}>{item.desc}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              <div className={`w-px h-5 mx-0.5 ${isLight ? 'bg-slate-300' : 'bg-slate-800'}`}></div>
+              {/* Main Tab 4: Dashboard */}
+              <button
+                onClick={() => {
+                  setActiveTab('dashboard');
+                  setActiveDropdown(null);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'dashboard'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                    : isLight
+                      ? 'text-slate-700 hover:bg-slate-200/80'
+                      : 'text-slate-300 hover:bg-slate-800/80'
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>לוח מחוונים</span>
+              </button>
 
-              {/* Group 3: Tracking & Admin */}
-              <div className="flex items-center gap-1 px-1">
-                {trackingItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                        isActive
-                          ? 'bg-indigo-600 text-white shadow-md font-bold'
-                          : isLight
-                            ? 'text-slate-700 hover:text-indigo-600 hover:bg-slate-200/70'
-                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              {/* Main Tab 5: Admin (if shai.shilo@gmail.com) */}
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setActiveTab('admin');
+                    setActiveDropdown(null);
+                  }}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'admin'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'text-emerald-400 hover:bg-emerald-950/50'
+                  }`}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>מנהל 👑</span>
+                </button>
+              )}
+
+              {/* Main Tab 6: Settings */}
+              <button
+                onClick={() => {
+                  setActiveTab('settings');
+                  setActiveDropdown(null);
+                }}
+                className={`p-1.5 rounded-xl transition ${
+                  activeTab === 'settings'
+                    ? 'bg-indigo-600 text-white'
+                    : isLight ? 'text-slate-600 hover:bg-slate-200' : 'text-slate-400 hover:bg-slate-800'
+                }`}
+                title="הגדרות"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+
             </nav>
 
             {/* Right Tools & User Info */}
