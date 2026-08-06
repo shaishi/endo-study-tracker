@@ -83,7 +83,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
             </p>
           </div>
 
-          {/* Stats Badges */}
+          {/* Stats Badges & Quick Cram Access */}
           <div className="flex flex-wrap items-center gap-3">
             {/* Days Left Card */}
             <div className="bg-slate-800/80 border border-indigo-500/30 rounded-xl px-4 py-2.5 text-center">
@@ -100,6 +100,15 @@ export const TodayView: React.FC<TodayViewProps> = ({
                 {schedule.dailyPace} יחידות/יום
               </div>
             </div>
+
+            {/* Quick Cram Notebook Button */}
+            <button
+              onClick={() => setActiveTab('cram')}
+              className="px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold transition flex items-center gap-1.5"
+              title="פתח מחברת סיכומים לבחינה"
+            >
+              <span>מחברת סיכומים לבחינה 📝</span>
+            </button>
           </div>
         </div>
 

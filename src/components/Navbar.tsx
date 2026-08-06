@@ -19,7 +19,8 @@ import {
   Bandage,
   Timer,
   Stethoscope,
-  ChevronDown
+  ChevronDown,
+  Bookmark
 } from 'lucide-react';
 import type { User } from 'firebase/auth';
 
@@ -64,6 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'weeks', label: 'תוכנית 12 השבועות', icon: CheckCircle2, desc: 'ספרינט הכנה מובנה' },
     { id: 'literature', label: 'ספרות חובה (266)', icon: FileText, desc: 'מאמרים קלאסיים והנחיות' },
     { id: 'books', label: 'ספרי לימוד (7)', icon: Book, desc: 'Cohen, Pathways, Gutmann' },
+    { id: 'cram', label: 'מחברת סיכומים לבחינה 📝', icon: Bookmark, desc: 'ריכוז מאמרים מסומנים, הערות וטעויות' },
   ];
 
   const clinicalToolItems = [
@@ -80,7 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'settings', label: 'הגדרות', icon: Settings },
   ];
 
-  const isCurriculumActive = ['today', 'weeks', 'literature', 'books'].includes(activeTab);
+  const isCurriculumActive = ['today', 'weeks', 'literature', 'books', 'cram'].includes(activeTab);
   const isToolsActive = ['protocols', 'trauma', 'quiz', 'flashcards', 'cheatsheets'].includes(activeTab);
 
   return (
