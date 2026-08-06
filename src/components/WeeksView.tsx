@@ -11,7 +11,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import type { EndoData, UserState, LiteratureItem } from '../types';
-import { getArticleSummary } from '../utils/summaryHelper';
+import { getArticleSummary, isHighYieldArticle } from '../utils/summaryHelper';
 
 interface WeeksViewProps {
   data: EndoData;
@@ -39,6 +39,7 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
   const [activeNoteModalId, setActiveNoteModalId] = useState<number | null>(null);
   const [tempNoteText, setTempNoteText] = useState<string>('');
   const [expandedSummaryId, setExpandedSummaryId] = useState<number | null>(null);
+  const [isHighYieldOnly, setIsHighYieldOnly] = useState<boolean>(false);
 
   const litMap = new Map<number, LiteratureItem>();
   data.literature.forEach(item => litMap.set(item.id, item));
@@ -77,7 +78,19 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsHighYieldOnly(!isHighYieldOnly)}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
+                isHighYieldOnly
+                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>🔥 High-Yield בלבד</span>
+            </button>
+
             <button
               onClick={() => {
                 const all: Record<number, boolean> = {};
@@ -103,9 +116,13 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
         {data.weeks.map((week) => {
           const isChapterDone = userState.completedWeekChapters.includes(week.week);
           
-          const weekItems = week.article_ids
+          let weekItems = week.article_ids
             .map(id => litMap.get(id))
             .filter((item): item is LiteratureItem => item !== undefined);
+
+          if (isHighYieldOnly) {
+            weekItems = weekItems.filter(item => isHighYieldArticle(item));
+          }
 
           const completedItemsCount = weekItems.filter(item => userState.completedItemIds.includes(item.id)).length;
           

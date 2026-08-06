@@ -172,7 +172,7 @@ export const CheatSheetsView: React.FC = () => {
                     <td className="p-3 font-mono text-indigo-300">1 (100%)</td>
                     <td className="p-3 font-mono text-indigo-300">1 תעלה (99.5%)</td>
                     <td className="p-3">השן הארוכה ביותר בפה (ממוצע 26.5 מ"מ). בנלור בוקו-לשוני רחב.</td>
-                    <td className="p-3 citation-text text-slate-400">Kuttler 1950</td>
+                    <td className="p-3 citation-text text-slate-400">Kuttler 1955</td>
                   </tr>
                   <tr>
                     <td className="p-3 font-bold text-indigo-300">מלתעה עליונה ראשונה (Maxillary 1st Premolar)</td>

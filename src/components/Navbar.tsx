@@ -70,6 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const clinicalToolItems = [
     { id: 'protocols', label: 'פרוטוקולים קליניים 🩺', icon: Stethoscope, desc: 'Pulp Capping, Pulpotomy, RCT, Revascularization' },
+    { id: 'cases', label: 'מקרים קליניים 📋', icon: FileText, desc: 'וינייטות והכנה לבחינה בעל-פה' },
     { id: 'trauma', label: 'מחשבון טראומה 🩹', icon: Bandage, desc: 'AAE / IADT 2020 Guidelines' },
     { id: 'quiz', label: 'סימולטור שאלות ⚡', icon: Award, desc: 'בנק שאלות וניתוח טעויות' },
     { id: 'flashcards', label: 'כרטיסיות זיכרון', icon: Brain, desc: 'שינון חזרה מרווחת Spaced Repetition' },
@@ -83,7 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   const isCurriculumActive = ['today', 'weeks', 'literature', 'books', 'cram'].includes(activeTab);
-  const isToolsActive = ['protocols', 'trauma', 'quiz', 'flashcards', 'cheatsheets'].includes(activeTab);
+  const isToolsActive = ['protocols', 'cases', 'trauma', 'quiz', 'flashcards', 'cheatsheets'].includes(activeTab);
 
   return (
     <>

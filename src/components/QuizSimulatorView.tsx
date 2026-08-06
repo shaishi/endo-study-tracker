@@ -1,16 +1,22 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   CheckCircle2, 
   XCircle, 
   Award, 
   RotateCcw,
   AlertTriangle,
-  BarChart2,
   Filter,
-  Sparkles
+  Sparkles,
+  Timer,
+  Flag,
+  ChevronRight,
+  ChevronLeft,
+  FileCheck,
+  Zap
 } from 'lucide-react';
 import { quizQuestionsData } from '../data/quizData';
 import type { UserState } from '../types';
+import { VertucciSchemaSVG, DummerApicalConstrictionSVG } from '../data/visualSchemas';
 
 interface QuizSimulatorViewProps {
   userState: UserState;
@@ -23,15 +29,25 @@ export const QuizSimulatorView: React.FC<QuizSimulatorViewProps> = ({
   recordQuizScore,
   recordQuestionAttempt,
 }) => {
+  const [examMode, setExamMode] = useState<'practice' | 'mock'>('practice');
+  const [mockQuestionCount, setMockQuestionCount] = useState<number>(25);
+  
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [onlyMissed, setOnlyMissed] = useState<boolean>(false);
   const [isRapidFire, setIsRapidFire] = useState<boolean>(false);
-  
+  const [isHighYieldOnly, setIsHighYieldOnly] = useState<boolean>(false);
+
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, boolean>>({});
+  const [flaggedQuestions, setFlaggedQuestions] = useState<Record<number, boolean>>({});
+  
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
+
+  // Mock Exam Timer
+  const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(mockQuestionCount * 90); // 1.5 min per question
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
 
   const missedSet = useMemo(() => new Set(userState.missedQuestionIds || []), [userState.missedQuestionIds]);
 
@@ -42,9 +58,17 @@ export const QuizSimulatorView: React.FC<QuizSimulatorViewProps> = ({
 
   const activeQuestions = useMemo(() => {
     let list = quizQuestionsData;
+    
+    if (examMode === 'mock') {
+      return list.slice(0, mockQuestionCount);
+    }
+
     if (onlyMissed) {
       list = list.filter(q => missedSet.has(q.id));
-      if (list.length === 0) list = quizQuestionsData; // fallback if no missed questions
+      if (list.length === 0) list = quizQuestionsData;
+    }
+    if (isHighYieldOnly) {
+      list = list.filter(q => q.isHighYield);
     }
     if (selectedCategory !== 'all') {
       list = list.filter(q => q.category === selectedCategory);
@@ -53,334 +77,426 @@ export const QuizSimulatorView: React.FC<QuizSimulatorViewProps> = ({
       list = list.slice(0, 5);
     }
     return list;
-  }, [selectedCategory, onlyMissed, isRapidFire, missedSet]);
+  }, [examMode, mockQuestionCount, selectedCategory, onlyMissed, isRapidFire, isHighYieldOnly, missedSet]);
 
   const currentQuestion = activeQuestions[currentIndex] || activeQuestions[0];
 
+  // Timer Effect for Mock Exam
+  useEffect(() => {
+    let interval: any = null;
+    if (examMode === 'mock' && isTimerRunning && timeLeftSeconds > 0 && !isCompleted) {
+      interval = setInterval(() => {
+        setTimeLeftSeconds(prev => {
+          if (prev <= 1) {
+            handleFinalSubmitMockExam();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [examMode, isTimerRunning, timeLeftSeconds, isCompleted]);
+
+  const handleStartMockExam = (count: number) => {
+    setExamMode('mock');
+    setMockQuestionCount(count);
+    setTimeLeftSeconds(count * 90);
+    setCurrentIndex(0);
+    setSelectedAnswers({});
+    setSubmittedAnswers({});
+    setFlaggedQuestions({});
+    setIsCompleted(false);
+    setIsTimerRunning(true);
+  };
+
   const handleSelectOption = (optionIndex: number) => {
-    if (!currentQuestion || submittedAnswers[currentQuestion.id]) return;
+    if (!currentQuestion) return;
+    if (examMode === 'practice' && submittedAnswers[currentQuestion.id]) return;
+
     setSelectedAnswers(prev => ({ ...prev, [currentQuestion.id]: optionIndex }));
   };
 
-  const handleSubmitAnswer = () => {
+  const handleSubmitPracticeAnswer = () => {
     if (!currentQuestion) return;
     const selected = selectedAnswers[currentQuestion.id];
     if (selected === undefined) return;
 
     const isCorrect = selected === currentQuestion.correctOptionIndex;
     setSubmittedAnswers(prev => ({ ...prev, [currentQuestion.id]: true }));
+    recordQuestionAttempt(currentQuestion.id, isCorrect, currentQuestion.category, selected);
 
     if (isCorrect) {
       setScore(prev => prev + 1);
     }
-
-    recordQuestionAttempt(currentQuestion.id, isCorrect, currentQuestion.category, selected);
   };
 
-  const handleNextQuestion = () => {
-    if (currentIndex < activeQuestions.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      setIsCompleted(true);
-      recordQuizScore(score, activeQuestions.length);
-    }
+  const handleToggleFlag = (questionId: number) => {
+    setFlaggedQuestions(prev => ({ ...prev, [questionId]: !prev[questionId] }));
   };
 
-  const handleRestart = () => {
+  const handleFinalSubmitMockExam = () => {
+    setIsTimerRunning(false);
+    let finalScore = 0;
+    activeQuestions.forEach(q => {
+      const selected = selectedAnswers[q.id];
+      const isCorrect = selected === q.correctOptionIndex;
+      if (selected !== undefined) {
+        recordQuestionAttempt(q.id, isCorrect, q.category, selected);
+      }
+      if (isCorrect) {
+        finalScore++;
+      }
+    });
+
+    setScore(finalScore);
+    recordQuizScore(finalScore, activeQuestions.length);
+    setIsCompleted(true);
+  };
+
+  const handleReset = () => {
     setCurrentIndex(0);
     setSelectedAnswers({});
     setSubmittedAnswers({});
+    setFlaggedQuestions({});
     setIsCompleted(false);
     setScore(0);
+    if (examMode === 'mock') {
+      setTimeLeftSeconds(mockQuestionCount * 90);
+      setIsTimerRunning(true);
+    }
   };
 
-  // Compute Category Analytics from quizHistory
-  const categoryAnalytics = useMemo(() => {
-    const history = userState.quizHistory || [];
-    const stats: Record<string, { total: number; correct: number }> = {};
-
-    history.forEach(item => {
-      if (!stats[item.category]) {
-        stats[item.category] = { total: 0, correct: 0 };
-      }
-      stats[item.category].total += 1;
-      if (item.isCorrect) stats[item.category].correct += 1;
-    });
-
-    return Object.entries(stats).map(([cat, data]) => ({
-      category: cat,
-      total: data.total,
-      correct: data.correct,
-      percentage: Math.round((data.correct / data.total) * 100)
-    }));
-  }, [userState.quizHistory]);
+  const formatTimer = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       
       {/* Header Banner */}
-      <div className="glass-card rounded-3xl p-6 border border-slate-700/60 bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 shadow-xl">
+      <div className="glass-card rounded-3xl p-6 border border-indigo-500/30 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 shadow-xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold mb-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold mb-2">
               <Award className="w-4 h-4 text-amber-400" />
-              <span>סימולטור שאלות בחינה לבחינת שלב א' באנדודונטיה</span>
+              <span>סימולטור שאלות ומבחנים דמויים (Board Exam Simulator)</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">בנק שאלות וניתוח טעויות שוטף</h2>
-            <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl">
-              תרגול שאלות אמריקאיות קלאסיות ברמת בחינת המומחיות, מלוות בניתוח נקודות תורפה וקישורים ישירים לספרות המקור.
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">סימולטור שאלות לבחינת המומחיות</h2>
+            <p className="text-slate-400 text-xs sm:text-sm mt-1">
+              מאגר שאלות קליניות רב-ברירתיות עם הסברים מפורטים וציטוטים למאמרי הליבה.
             </p>
           </div>
 
-          {/* Overall Quiz Stats Counter */}
-          <div className="flex items-center gap-3 bg-slate-950/80 p-3 rounded-2xl border border-slate-800">
-            <div className="text-right">
-              <div className="text-[10px] text-slate-400">שאלות לחיזוק (טעויות)</div>
-              <div className="text-sm font-extrabold text-rose-400">{missedSet.size} שאלות</div>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center">
-              <AlertTriangle className="w-4.5 h-4.5 text-rose-400" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filter & Mode Selection Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-2 bg-slate-950/70 rounded-2xl border border-slate-800">
-        
-        {/* Category Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          <Filter className="w-4 h-4 text-slate-400 flex-shrink-0 mr-1" />
-          {categories.map((cat) => (
+          {/* Mode Switcher Buttons */}
+          <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
             <button
-              key={cat}
               onClick={() => {
-                setSelectedCategory(cat);
-                handleRestart();
+                setExamMode('practice');
+                setIsCompleted(false);
               }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
-                selectedCategory === cat
-                  ? 'bg-indigo-600 text-white shadow-md font-bold'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                examMode === 'practice'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              {cat === 'all' ? 'כל השאלות' : cat}
+              תרגול חופשי 🎯
             </button>
-          ))}
-        </div>
 
-        {/* Toggle Switches */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              setIsRapidFire(!isRapidFire);
-              handleRestart();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
-              isRapidFire
-                ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold shadow-md'
-                : 'bg-slate-900 text-amber-300 border-slate-700 hover:bg-slate-800'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>⚡ בחינת פלאש (5 שאלות ב-3 דקות)</span>
-          </button>
-
-          {/* Missed Questions Queue Switch */}
-          <button
-            onClick={() => {
-              setOnlyMissed(!onlyMissed);
-              handleRestart();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
-              onlyMissed
-                ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold shadow-md'
-                : 'bg-slate-900 text-amber-300 border-slate-700 hover:bg-slate-800'
-            }`}
-          >
-            <AlertTriangle className="w-3.5 h-3.5" />
-            <span>שאלות לחיזוק ({userState.missedQuestionIds?.length || 0})</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Category Weak Spot Diagnostics Card (If user has history) */}
-      {categoryAnalytics.length > 0 && (
-        <div className="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/60 space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-            <h4 className="text-xs font-extrabold text-indigo-300 flex items-center gap-1.5">
-              <BarChart2 className="w-4 h-4 text-indigo-400" />
-              <span>ניתוח אחוזי הצלחה לפי נושאים (Weak Spot Diagnosis)</span>
-            </h4>
-            <span className="text-[10px] text-slate-400">בוצעו {userState.quizHistory?.length || 0} תשובות</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {categoryAnalytics.map(stat => (
-              <div key={stat.category} className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-200">{stat.category}</span>
-                  <span className={`font-mono font-extrabold ${
-                    stat.percentage >= 80 ? 'text-emerald-400' :
-                    stat.percentage >= 60 ? 'text-amber-400' : 'text-rose-400'
-                  }`}>
-                    {stat.percentage}%
-                  </span>
-                </div>
-                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                  <div 
-                    className={`h-1.5 rounded-full ${
-                      stat.percentage >= 80 ? 'bg-emerald-500' :
-                      stat.percentage >= 60 ? 'bg-amber-500' : 'bg-rose-500'
-                    }`}
-                    style={{ width: `${stat.percentage}%` }}
-                  ></div>
-                </div>
-                <div className="text-[10px] text-slate-400 flex justify-between">
-                  <span>נכון: {stat.correct}/{stat.total}</span>
-                  {stat.percentage < 65 && <span className="text-rose-400 font-semibold">⚠️ דרוש חזרה</span>}
-                </div>
-              </div>
-            ))}
+            <button
+              onClick={() => handleStartMockExam(25)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+                examMode === 'mock'
+                  ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black shadow-md'
+                  : 'text-amber-400 hover:text-amber-300'
+              }`}
+            >
+              <Timer className="w-3.5 h-3.5" />
+              <span>מבחן מדומה מלא ⏱️</span>
+            </button>
           </div>
         </div>
-      )}
 
-      {/* Main Question Simulation Box */}
-      {!isCompleted && currentQuestion ? (
-        <div className="space-y-5 max-w-3xl mx-auto">
-          
-          {/* Question Counter Header */}
-          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-            <span className="font-semibold text-indigo-400 bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-500/20">
-              {currentQuestion.category}
+        {/* Filters Toolbar (Practice Mode) */}
+        {examMode === 'practice' && (
+          <div className="mt-5 pt-4 border-t border-slate-800 flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-slate-400 font-medium flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5 text-indigo-400" />
+              <span>סינון:</span>
             </span>
-            <span>שאלה {currentIndex + 1} מתוך {activeQuestions.length}</span>
+
+            {/* Category Selector */}
+            <select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setCurrentIndex(0);
+              }}
+              className="bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 font-semibold"
+            >
+              <option value="all">כל הנושאים ({quizQuestionsData.length} שאלות)</option>
+              {categories.filter(c => c !== 'all').map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
+            {/* Missed Questions Toggle */}
+            <button
+              onClick={() => {
+                setOnlyMissed(!onlyMissed);
+                setCurrentIndex(0);
+              }}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
+                onlyMissed
+                  ? 'bg-rose-950 border-rose-500 text-rose-300'
+                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+              <span>שאלות לחיזוק ({userState.missedQuestionIds?.length || 0})</span>
+            </button>
+
+            {/* Rapid Fire 5-Questions Toggle */}
+            <button
+              onClick={() => {
+                setIsRapidFire(!isRapidFire);
+                setCurrentIndex(0);
+              }}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
+                isRapidFire
+                  ? 'bg-cyan-950 border-cyan-500 text-cyan-300'
+                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 text-cyan-400" />
+              <span>בחינת 5 שאלות מהירה</span>
+            </button>
+
+            {/* High-Yield Only Toggle */}
+            <button
+              onClick={() => {
+                setIsHighYieldOnly(!isHighYieldOnly);
+                setCurrentIndex(0);
+              }}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
+                isHighYieldOnly
+                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>🔥 High-Yield בלבד</span>
+            </button>
           </div>
+        )}
 
-          {/* Question Card */}
-          <div className="glass-card rounded-3xl border border-slate-700/80 p-6 sm:p-8 space-y-6 shadow-2xl bg-slate-900/90">
-            <h3 className="text-xl sm:text-2xl font-extrabold text-white leading-relaxed">
-              {currentQuestion.question}
-            </h3>
-
-            {/* Answer Options Grid */}
-            <div className="space-y-3">
-              {currentQuestion.options.map((optionText, optIdx) => {
-                const isSelected = selectedAnswers[currentQuestion.id] === optIdx;
-                const isSubmitted = submittedAnswers[currentQuestion.id];
-                const isCorrectOption = optIdx === currentQuestion.correctOptionIndex;
-
-                let btnStyle = "border-slate-800 bg-slate-950/60 text-slate-200 hover:border-slate-700";
-                if (isSubmitted) {
-                  if (isCorrectOption) {
-                    btnStyle = "border-emerald-500/60 bg-emerald-950/80 text-emerald-200 font-bold";
-                  } else if (isSelected && !isCorrectOption) {
-                    btnStyle = "border-rose-500/60 bg-rose-950/80 text-rose-200 font-bold";
-                  } else {
-                    btnStyle = "border-slate-800 bg-slate-950/40 text-slate-500 opacity-60";
-                  }
-                } else if (isSelected) {
-                  btnStyle = "border-indigo-500 bg-indigo-950/80 text-white font-bold shadow-md shadow-indigo-600/20";
-                }
-
-                return (
-                  <button
-                    key={optIdx}
-                    disabled={isSubmitted}
-                    onClick={() => handleSelectOption(optIdx)}
-                    className={`w-full text-right p-4 rounded-2xl border text-sm font-medium transition flex items-center justify-between gap-3 ${btnStyle}`}
-                  >
-                    <span className="leading-relaxed">{optionText}</span>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {isSubmitted && isCorrectOption && (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                      )}
-                      {isSubmitted && isSelected && !isCorrectOption && (
-                        <XCircle className="w-5 h-5 text-rose-400" />
-                      )}
-                      {!isSubmitted && (
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center text-xs font-mono ${
-                          isSelected ? 'border-indigo-400 bg-indigo-600 text-white' : 'border-slate-700 text-slate-500'
-                        }`}>
-                          {String.fromCharCode(65 + optIdx)}
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+        {/* Mock Exam Controls Bar */}
+        {examMode === 'mock' && !isCompleted && (
+          <div className="mt-5 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-300 font-bold">אורך מבחן:</span>
+              {[25, 50, 100].map(cnt => (
+                <button
+                  key={cnt}
+                  onClick={() => handleStartMockExam(cnt)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold border transition ${
+                    mockQuestionCount === cnt
+                      ? 'bg-amber-500 text-slate-950 border-amber-400'
+                      : 'bg-slate-800 text-slate-300 border-slate-700'
+                  }`}
+                >
+                  {cnt} שאלות
+                </button>
+              ))}
             </div>
 
-            {/* Explanation & Literature Reference (Shown after submit) */}
-            {submittedAnswers[currentQuestion.id] && (
-              <div className="p-5 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 space-y-3 animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-indigo-500/20 pb-2">
-                  <span className="font-bold text-indigo-300 text-xs flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span>הסבר לימודי וציטוט הספרות</span>
-                  </span>
-                  <span className="text-[11px] font-mono text-cyan-300">{currentQuestion.paperReference}</span>
-                </div>
+            {/* Countdown Clock Display */}
+            <div className="flex items-center gap-2 bg-slate-950 px-4 py-2 rounded-2xl border border-rose-500/30 text-rose-400 font-mono font-bold text-sm">
+              <Timer className="w-4 h-4 animate-pulse text-rose-500" />
+              <span>זמן נותר: {formatTimer(timeLeftSeconds)}</span>
+            </div>
+          </div>
+        )}
+      </div>
 
-                <p className="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed">
-                  {currentQuestion.explanation}
-                </p>
-              </div>
-            )}
+      {/* Main Exam Interface / Results */}
+      {isCompleted ? (
+        /* End-of-Exam Summary Screen */
+        <div className="glass-card rounded-3xl p-8 border border-emerald-500/30 bg-slate-900/90 text-center space-y-6 animate-fadeIn">
+          <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto">
+            <FileCheck className="w-8 h-8 text-emerald-400" />
+          </div>
 
-            {/* Action Bar */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-              {!submittedAnswers[currentQuestion.id] ? (
-                <button
-                  onClick={handleSubmitAnswer}
-                  disabled={selectedAnswers[currentQuestion.id] === undefined}
-                  className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-sm transition shadow-lg shadow-indigo-600/30 disabled:opacity-40"
-                >
-                  בדיקת תשובה ➔
-                </button>
-              ) : (
-                <button
-                  onClick={handleNextQuestion}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-extrabold text-sm transition shadow-lg flex items-center justify-center gap-2"
-                >
-                  <span>{currentIndex < activeQuestions.length - 1 ? 'לשאלה הבאה ➔' : 'סיום הסימולציה וקבלת ציון 🏆'}</span>
-                </button>
+          <h3 className="text-2xl font-black text-white">סיימת את המבחן!</h3>
+
+          <div className="inline-block p-6 rounded-3xl bg-slate-950 border border-slate-800 space-y-2">
+            <div className="text-4xl font-black text-emerald-400">
+              {Math.round((score / (activeQuestions.length || 1)) * 100)}%
+            </div>
+            <div className="text-xs text-slate-300 font-bold">
+              ענית נכון על {score} מתוך {activeQuestions.length} שאלות
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-center gap-3 pt-2">
+            <button
+              onClick={handleReset}
+              className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition flex items-center gap-2"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>בצע מבחן נוסף</span>
+            </button>
+          </div>
+        </div>
+      ) : currentQuestion ? (
+        /* Question Card Interface */
+        <div className="glass-card rounded-3xl p-6 sm:p-8 border border-slate-800 bg-slate-900/90 space-y-6 relative">
+          
+          {/* Question Card Header */}
+          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-500/30 text-xs font-mono font-bold">
+                שאלה {currentIndex + 1} מתוך {activeQuestions.length}
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold">
+                {currentQuestion.category}
+              </span>
+              {currentQuestion.isHighYield && (
+                <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold">
+                  🔥 High-Yield
+                </span>
               )}
             </div>
 
-          </div>
-        </div>
-      ) : (
-        /* Completion Score Screen */
-        <div className="glass-card rounded-3xl p-8 border border-slate-700 text-center space-y-6 max-w-xl mx-auto bg-slate-900/90 shadow-2xl">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 text-amber-400 mx-auto flex items-center justify-center">
-            <Award className="w-10 h-10" />
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="text-2xl font-black text-white">כל הכבוד! הסימולציה הושלמה</h3>
-            <p className="text-xs text-slate-300">התוצאה תועדה במערכת ותשפיע על ניתוח נקודות התורפה שלך.</p>
-          </div>
-
-          <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 inline-block w-full">
-            <div className="text-xs text-slate-400">ציון סופי</div>
-            <div className="text-4xl font-black text-indigo-400 my-1">
-              {score} / {activeQuestions.length} ({Math.round((score / activeQuestions.length) * 100)}%)
-            </div>
-          </div>
-
-          <div className="flex gap-3">
+            {/* Flag for review button */}
             <button
-              onClick={handleRestart}
-              className="flex-1 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5"
+              onClick={() => handleToggleFlag(currentQuestion.id)}
+              className={`p-2 rounded-xl border transition ${
+                flaggedQuestions[currentQuestion.id]
+                  ? 'bg-rose-950 border-rose-500 text-rose-400'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+              }`}
+              title="סמן שאלה לעיון שוב"
             >
-              <RotateCcw className="w-4 h-4" />
-              <span>התחל סימולציה חדשה</span>
+              <Flag className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Question Text */}
+          <h3 className="text-lg sm:text-xl font-black text-white leading-relaxed">
+            {currentQuestion.question}
+          </h3>
+
+          {/* Visual Diagrams (Tooth Morphology & Schemas) */}
+          {currentQuestion.category === 'Tooth Morphology' && currentQuestion.id !== 1 && (
+            <VertucciSchemaSVG />
+          )}
+
+          {(currentQuestion.id === 1 || currentQuestion.question.includes('Constriction')) && (
+            <DummerApicalConstrictionSVG />
+          )}
+
+          {/* Options Grid */}
+          <div className="space-y-3 pt-2">
+            {currentQuestion.options.map((optionText, idx) => {
+              const isSelected = selectedAnswers[currentQuestion.id] === idx;
+              const isSubmitted = submittedAnswers[currentQuestion.id];
+              const isCorrectOption = idx === currentQuestion.correctOptionIndex;
+
+              let optionStyle = 'bg-slate-950/80 border-slate-800 text-slate-200 hover:bg-slate-800/80';
+              if (examMode === 'practice' && isSubmitted) {
+                if (isCorrectOption) {
+                  optionStyle = 'bg-emerald-950/90 border-emerald-500/80 text-emerald-200 font-bold';
+                } else if (isSelected) {
+                  optionStyle = 'bg-rose-950/90 border-rose-500/80 text-rose-200';
+                }
+              } else if (isSelected) {
+                optionStyle = 'bg-indigo-950 border-indigo-500 text-white font-bold shadow-md shadow-indigo-600/20';
+              }
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => handleSelectOption(idx)}
+                  className={`w-full text-right p-4 rounded-2xl border text-xs sm:text-sm transition flex items-center justify-between gap-3 ${optionStyle}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full border border-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
+                      {String.fromCharCode(65 + idx)}
+                    </span>
+                    <span>{optionText}</span>
+                  </div>
+
+                  {examMode === 'practice' && isSubmitted && (
+                    <div>
+                      {isCorrectOption && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                      {isSelected && !isCorrectOption && <XCircle className="w-5 h-5 text-rose-400" />}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Practice Mode Submit & Explanation */}
+          {examMode === 'practice' && (
+            <div className="pt-4 border-t border-slate-800 space-y-4">
+              {!submittedAnswers[currentQuestion.id] ? (
+                <button
+                  onClick={handleSubmitPracticeAnswer}
+                  disabled={selectedAnswers[currentQuestion.id] === undefined}
+                  className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-extrabold text-xs transition shadow-lg shadow-indigo-600/20"
+                >
+                  בדוק תשובה
+                </button>
+              ) : (
+                <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 animate-fadeIn text-xs">
+                  <div className="font-bold text-indigo-300">💡 הסבר קליני וציטוט:</div>
+                  <p className="text-slate-300 leading-relaxed">{currentQuestion.explanation}</p>
+                  <div className="text-[11px] text-amber-300 font-mono pt-1">
+                    📚 מקור: {currentQuestion.paperReference}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Bottom Navigation Buttons */}
+          <div className="flex items-center justify-between pt-4 border-t border-slate-800 text-xs">
+            <button
+              onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
+              disabled={currentIndex === 0}
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 font-bold transition flex items-center gap-1"
+            >
+              <ChevronRight className="w-4 h-4" />
+              <span>הקודם</span>
+            </button>
+
+            {examMode === 'mock' && currentIndex === activeQuestions.length - 1 ? (
+              <button
+                onClick={handleFinalSubmitMockExam}
+                className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold transition shadow-lg shadow-emerald-600/30"
+              >
+                הגש מבחן מדומה 🚀
+              </button>
+            ) : (
+              <button
+                onClick={() => setCurrentIndex(prev => Math.min(activeQuestions.length - 1, prev + 1))}
+                disabled={currentIndex === activeQuestions.length - 1}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-bold transition flex items-center gap-1"
+              >
+                <span>הבא</span>
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
         </div>
-      )}
+      ) : null}
 
     </div>
   );

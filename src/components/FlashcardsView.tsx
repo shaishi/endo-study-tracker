@@ -2,16 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { 
   Sparkles, 
   RotateCw, 
-  CheckCircle2, 
-  HelpCircle, 
   ExternalLink, 
   Brain, 
   ChevronRight, 
-  ChevronLeft,
-  Flame
+  ChevronLeft
 } from 'lucide-react';
 import { flashcardsData } from '../data/flashcardsData';
 import type { UserState } from '../types';
+import { VertucciSchemaSVG } from '../data/visualSchemas';
 
 interface FlashcardsViewProps {
   userState: UserState;
@@ -25,6 +23,7 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isHighYieldOnly, setIsHighYieldOnly] = useState<boolean>(false);
 
   const categories = useMemo(() => {
     const set = new Set(flashcardsData.map(f => f.category));
@@ -32,20 +31,26 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
   }, []);
 
   const filteredCards = useMemo(() => {
-    if (selectedCategory === 'all') return flashcardsData;
-    return flashcardsData.filter(f => f.category === selectedCategory);
-  }, [selectedCategory]);
+    let list = flashcardsData;
+    if (isHighYieldOnly) {
+      list = list.filter(f => f.isHighYield);
+    }
+    if (selectedCategory !== 'all') {
+      list = list.filter(f => f.category === selectedCategory);
+    }
+    return list;
+  }, [selectedCategory, isHighYieldOnly]);
 
   const currentCard = filteredCards[currentIndex] || filteredCards[0];
 
   const handleNext = () => {
     setIsFlipped(false);
-    setCurrentIndex((prev) => (prev + 1) % filteredCards.length);
+    setCurrentIndex((prev) => (prev + 1) % (filteredCards.length || 1));
   };
 
   const handlePrev = () => {
     setIsFlipped(false);
-    setCurrentIndex((prev) => (prev - 1 + filteredCards.length) % filteredCards.length);
+    setCurrentIndex((prev) => (prev - 1 + (filteredCards.length || 1)) % (filteredCards.length || 1));
   };
 
   const handleRate = (rating: 'easy' | 'medium' | 'hard') => {
@@ -54,198 +59,194 @@ export const FlashcardsView: React.FC<FlashcardsViewProps> = ({
     handleNext();
   };
 
-  const currentRating = userState.flashcardProgress?.[currentCard?.id];
   const ratedCount = Object.keys(userState.flashcardProgress || {}).length;
   const progressPercent = Math.round((ratedCount / flashcardsData.length) * 100);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header Banner */}
-      <div className="glass-card rounded-3xl p-6 border border-slate-700/60 bg-gradient-to-r from-indigo-900/60 via-slate-900/80 to-slate-900/90 relative overflow-hidden shadow-xl">
-        <div className="flex flex-wrap items-center justify-between gap-4 relative z-10">
+    <div className="space-y-6 max-w-4xl mx-auto">
+      
+      {/* Header */}
+      <div className="glass-card rounded-3xl p-6 border border-cyan-500/30 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 shadow-xl">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold mb-2">
-              <Brain className="w-4 h-4 text-indigo-400" />
-              <span>חזרה פעילה (Active Recall & Spaced Repetition)</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-semibold mb-2">
+              <Brain className="w-4 h-4 text-cyan-400" />
+              <span>שינון וחזרה מרווחת 266 כרטיסיות (Spaced Repetition)</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">כרטיסיות זהב לבחינה</h2>
-            <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-xl">
-              שאלות מפתח קלאסיות וממצאים מספריים שחוזרים בכל בחינת מומחיות. לחץ על הכרטיסייה לצפייה בתשובה!
-            </p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">כרטיסיות זהב - 266 מאמרי הליבה</h2>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-950/80 px-4 py-3 rounded-2xl border border-slate-800">
-            <div className="text-right">
-              <div className="text-[10px] text-slate-400">התקדמות סקירה</div>
-              <div className="text-sm font-extrabold text-indigo-400">{ratedCount} / {flashcardsData.length} ({progressPercent}%)</div>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-              <Flame className="w-4.5 h-4.5 text-amber-400" />
-            </div>
+          {/* Category & High Yield Filters */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setCurrentIndex(0);
+                setIsFlipped(false);
+              }}
+              className="bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-1.5 focus:outline-none font-semibold"
+            >
+              <option value="all">כל הנושאים ({flashcardsData.length} כרטיסיות)</option>
+              {categories.filter(c => c !== 'all').map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => {
+                setIsHighYieldOnly(!isHighYieldOnly);
+                setCurrentIndex(0);
+                setIsFlipped(false);
+              }}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
+                isHighYieldOnly
+                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>🔥 High-Yield בלבד</span>
+            </button>
           </div>
+        </div>
+
+        {/* Overall Flashcards Progress Bar */}
+        <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
+          <span className="text-slate-400">התקדמות שינון בדק:</span>
+          <span className="text-cyan-400 font-bold">{ratedCount} מתוך {flashcardsData.length} שוננו ({progressPercent}%)</span>
         </div>
       </div>
 
-      {/* Category Filter Chips */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-950/60 rounded-2xl border border-slate-800/80">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => {
-              setSelectedCategory(cat);
-              setCurrentIndex(0);
-              setIsFlipped(false);
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-              selectedCategory === cat
-                ? 'bg-indigo-600 text-white shadow-md font-bold'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-            }`}
-          >
-            {cat === 'all' ? 'כל הנושאים' : cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Main Flashcard Container */}
-      {currentCard && (
-        <div className="max-w-2xl mx-auto space-y-5">
+      {/* Main Flashcard Interactive Display */}
+      {currentCard ? (
+        <div className="space-y-4">
           
-          {/* Card Counter & Category Badge */}
-          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-            <span className="font-semibold text-indigo-400 bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-500/20">
-              {currentCard.category}
-            </span>
-            <span>כרטיסייה {currentIndex + 1} מתוך {filteredCards.length}</span>
-          </div>
-
-          {/* Flashcard Box */}
+          {/* Card Component */}
           <div 
             onClick={() => setIsFlipped(!isFlipped)}
-            className="cursor-pointer min-h-[320px] w-full glass-card rounded-3xl border border-slate-700/80 p-6 sm:p-8 flex flex-col justify-between shadow-2xl transition-all duration-300 hover:border-indigo-500/40 relative overflow-hidden bg-slate-900/90"
+            className={`cursor-pointer transition-all duration-500 min-h-[320px] rounded-3xl p-8 border flex flex-col justify-between relative shadow-2xl ${
+              isFlipped
+                ? 'bg-slate-900 border-indigo-500/50 shadow-indigo-500/10'
+                : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
+            }`}
           >
-            {!isFlipped ? (
-              /* Front Side: Question */
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
-                    <HelpCircle className="w-4 h-4 text-indigo-400" />
-                    <span>שאלה לבחינה</span>
+            {/* Card Header Info */}
+            <div className="flex items-center justify-between text-xs border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono font-bold">
+                  #{currentCard.id}
+                </span>
+                <span className="text-slate-400 font-semibold">{currentCard.category}</span>
+                {currentCard.isHighYield && (
+                  <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold">
+                    🔥 High-Yield
                   </span>
-                  {currentRating && (
-                    <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold border ${
-                      currentRating === 'easy' ? 'bg-emerald-950 text-emerald-300 border-emerald-500/30' :
-                      currentRating === 'medium' ? 'bg-amber-950 text-amber-300 border-amber-500/30' :
-                      'bg-rose-950 text-rose-300 border-rose-500/30'
-                    }`}>
-                      סומן כ: {currentRating === 'easy' ? 'קל' : currentRating === 'medium' ? 'בינוני' : 'קשה'}
-                    </span>
-                  )}
-                </div>
+                )}
+              </div>
 
-                <h3 className="text-xl sm:text-2xl font-extrabold text-white leading-relaxed pt-2">
+              <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+                <RotateCw className="w-3.5 h-3.5 text-cyan-400 animate-spin-slow" />
+                <span>לחץ על הכרטיס להיפוך</span>
+              </div>
+            </div>
+
+            {/* Front or Back Content */}
+            {!isFlipped ? (
+              /* Front (Question) */
+              <div className="py-8 space-y-4">
+                <div className="text-xs text-cyan-400 font-bold uppercase tracking-wider">שאלה / מקרה קליני:</div>
+                <h3 className="text-xl sm:text-2xl font-black text-white leading-relaxed">
                   {currentCard.question}
                 </h3>
-
-                <div className="pt-8 text-center text-xs text-indigo-300 font-semibold flex items-center justify-center gap-2 animate-pulse">
-                  <RotateCw className="w-4 h-4" />
-                  <span>לחץ לצפייה בתשובה והסבר קליני</span>
-                </div>
               </div>
             ) : (
-              /* Back Side: Answer & Takeaway */
-              <div className="space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>תשובה וממצא קליני</span>
-                  </span>
-                  {currentCard.paperCitation && (
-                    <span className="text-[11px] text-slate-400 citation-text font-mono truncate max-w-[200px]">
-                      {currentCard.paperCitation}
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-base sm:text-lg text-slate-100 font-medium leading-relaxed">
+              /* Back (Answer & Takeaway) */
+              <div className="py-6 space-y-4 animate-fadeIn">
+                <div className="text-xs text-emerald-400 font-bold uppercase tracking-wider">תשובה וסיכום קליני:</div>
+                <p className="text-base text-slate-200 leading-relaxed font-medium">
                   {currentCard.answer}
                 </p>
 
-                <div className="p-4 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 space-y-1 text-xs">
-                  <div className="font-bold text-indigo-300 flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span>שורה תחתית לבחינה (Clinical Takeaway):</span>
-                  </div>
-                  <p className="text-slate-200 leading-relaxed font-medium">
-                    {currentCard.keyTakeaway}
-                  </p>
-                </div>
-
-                {currentCard.pubMedUrl && (
-                  <a
-                    href={currentCard.pubMedUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1.5 text-xs text-cyan-400 hover:underline pt-1 citation-text"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>פתח מאמר מקור ב-PubMed</span>
-                  </a>
+                {/* Visual Schema if applicable */}
+                {currentCard.category === 'Tooth Morphology' && (
+                  <VertucciSchemaSVG />
                 )}
+
+                <div className="p-4 rounded-2xl bg-slate-950 border border-indigo-500/30 text-xs space-y-1">
+                  <div className="font-bold text-amber-300">💡 Clinical Takeaway לבחינה:</div>
+                  <p className="text-slate-300">{currentCard.keyTakeaway}</p>
+                  {currentCard.paperCitation && (
+                    <div className="text-[10px] text-indigo-300 font-mono pt-1">
+                      📚 {currentCard.paperCitation}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
+
+            {/* Card Footer */}
+            <div className="flex items-center justify-between text-xs border-t border-slate-800 pt-3 text-slate-400">
+              <span>כרטיסייה {currentIndex + 1} מתוך {filteredCards.length}</span>
+              {currentCard.pubMedUrl && (
+                <a 
+                  href={currentCard.pubMedUrl} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 text-cyan-400 hover:underline text-[11px]"
+                >
+                  <span>PubMed</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </div>
           </div>
 
           {/* Rating & Navigation Buttons */}
-          <div className="space-y-3 pt-1">
-            {isFlipped ? (
-              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-2.5">
-                <div className="text-xs font-semibold text-slate-300">דרג את רמת הקושי לסקירה הבאה:</div>
-                <div className="grid grid-cols-3 gap-2.5">
-                  <button
-                    onClick={() => handleRate('easy')}
-                    className="py-2.5 px-3 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 font-bold text-xs transition"
-                  >
-                    🟢 קל (הבנתי)
-                  </button>
-                  <button
-                    onClick={() => handleRate('medium')}
-                    className="py-2.5 px-3 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-500/40 text-amber-300 font-bold text-xs transition"
-                  >
-                    🟡 בינוני (לחזור)
-                  </button>
-                  <button
-                    onClick={() => handleRate('hard')}
-                    className="py-2.5 px-3 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-bold text-xs transition"
-                  >
-                    🔴 קשה (מחר)
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-3">
-                <button
-                  onClick={handlePrev}
-                  className="flex items-center gap-1.5 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                  <span>הקודמת</span>
-                </button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button
+              onClick={handlePrev}
+              className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition flex items-center gap-1"
+            >
+              <ChevronRight className="w-4 h-4" />
+              <span>הקודם</span>
+            </button>
 
-                <button
-                  onClick={handleNext}
-                  className="flex items-center gap-1.5 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition shadow-md"
-                >
-                  <span>הבאה</span>
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-              </div>
-            )}
+            {/* Self-Rating Buttons for Spaced Repetition */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleRate('hard')}
+                className="px-3.5 py-2 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-300 text-xs font-bold transition"
+              >
+                קשה 🔴
+              </button>
+              <button
+                onClick={() => handleRate('medium')}
+                className="px-3.5 py-2 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-500/40 text-amber-300 text-xs font-bold transition"
+              >
+                בינוני 🟡
+              </button>
+              <button
+                onClick={() => handleRate('easy')}
+                className="px-3.5 py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition"
+              >
+                קל 🟢
+              </button>
+            </div>
+
+            <button
+              onClick={handleNext}
+              className="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition flex items-center gap-1"
+            >
+              <span>הבא</span>
+              <ChevronLeft className="w-4 h-4" />
+            </button>
           </div>
 
         </div>
-      )}
+      ) : null}
+
     </div>
   );
 };

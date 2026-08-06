@@ -23,6 +23,7 @@ import { FocusTimerModal } from './components/FocusTimerModal';
 import { TraumaDecisionTree } from './components/TraumaDecisionTree';
 import { ClinicalProtocolsView } from './components/ClinicalProtocolsView';
 import { CramNotebookView } from './components/CramNotebookView';
+import { ClinicalCasesView } from './components/ClinicalCasesView';
 
 const data = rawData as EndoData;
 
@@ -167,6 +168,10 @@ export function App() {
 
         {activeTab === 'protocols' && (
           <ClinicalProtocolsView />
+        )}
+
+        {activeTab === 'cases' && (
+          <ClinicalCasesView />
         )}
 
         {activeTab === 'cram' && (
