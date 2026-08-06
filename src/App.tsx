@@ -1,0 +1,165 @@
+import { useState, useMemo } from 'react';
+import rawData from './data/endo_data.json';
+import type { EndoData } from './types';
+import { useEndoTracker } from './hooks/useEndoTracker';
+import { calculateAdaptiveSchedule } from './utils/adaptiveEngine';
+
+import { Navbar } from './components/Navbar';
+import { TodayView } from './components/TodayView';
+import { WeeksView } from './components/WeeksView';
+import { LiteratureView } from './components/LiteratureView';
+import { BooksView } from './components/BooksView';
+import { DashboardView } from './components/DashboardView';
+import { SettingsView } from './components/SettingsView';
+import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { AuthModal } from './components/AuthModal';
+
+const data = rawData as EndoData;
+
+export function App() {
+  const [activeTab, setActiveTab] = useState<string>('today');
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+
+  const {
+    userState,
+    currentUser,
+    cloudSyncStatus,
+    toggleLiteratureItem,
+    toggleWeekChapter,
+    toggleReviewFlag,
+    updateNote,
+    updateBookDriveLink,
+    setCustomTargetDate,
+    toggleBlockedDay,
+    setMaxDailyUnitsThreshold,
+    exportStateJson,
+    importStateJson,
+    resetAllProgress,
+    loginWithGoogle,
+    loginWithEmail,
+    registerWithEmail,
+    logout,
+  } = useEndoTracker();
+
+  // Compute adaptive schedule calculation
+  const schedule = useMemo(() => {
+    return calculateAdaptiveSchedule(data, userState);
+  }, [data, userState]);
+
+  const totalLiteratureCount = data.literature.length;
+  const completedLiteratureCount = userState.completedItemIds.length;
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white dir-rtl">
+      
+      {/* Header / Navbar */}
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        openSearch={() => setIsSearchOpen(true)}
+        openAuthModal={() => setIsAuthModalOpen(true)}
+        currentUser={currentUser}
+        cloudSyncStatus={cloudSyncStatus}
+        completedCount={completedLiteratureCount}
+        totalCount={totalLiteratureCount}
+        currentStreak={userState.currentStreak}
+      />
+
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {activeTab === 'today' && (
+          <TodayView
+            schedule={schedule}
+            userState={userState}
+            toggleLiteratureItem={toggleLiteratureItem}
+            toggleWeekChapter={toggleWeekChapter}
+            toggleReviewFlag={toggleReviewFlag}
+            updateNote={updateNote}
+            setCustomTargetDate={setCustomTargetDate}
+            setActiveTab={setActiveTab}
+          />
+        )}
+
+        {activeTab === 'weeks' && (
+          <WeeksView
+            data={data}
+            userState={userState}
+            toggleLiteratureItem={toggleLiteratureItem}
+            toggleWeekChapter={toggleWeekChapter}
+            toggleReviewFlag={toggleReviewFlag}
+            updateNote={updateNote}
+          />
+        )}
+
+        {activeTab === 'literature' && (
+          <LiteratureView
+            data={data}
+            userState={userState}
+            toggleLiteratureItem={toggleLiteratureItem}
+            toggleReviewFlag={toggleReviewFlag}
+            updateNote={updateNote}
+          />
+        )}
+
+        {activeTab === 'books' && (
+          <BooksView
+            data={data}
+            userState={userState}
+            updateBookDriveLink={updateBookDriveLink}
+          />
+        )}
+
+        {activeTab === 'dashboard' && (
+          <DashboardView
+            data={data}
+            userState={userState}
+          />
+        )}
+
+        {activeTab === 'settings' && (
+          <SettingsView
+            userState={userState}
+            setCustomTargetDate={setCustomTargetDate}
+            toggleBlockedDay={toggleBlockedDay}
+            setMaxDailyUnitsThreshold={setMaxDailyUnitsThreshold}
+            exportStateJson={exportStateJson}
+            importStateJson={importStateJson}
+            resetAllProgress={resetAllProgress}
+          />
+        )}
+      </main>
+
+      {/* Cmd+K Global Search Modal */}
+      <GlobalSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        data={data}
+        userState={userState}
+        toggleLiteratureItem={toggleLiteratureItem}
+        toggleReviewFlag={toggleReviewFlag}
+      />
+
+      {/* Firebase Cloud Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentUser={currentUser}
+        cloudSyncStatus={cloudSyncStatus}
+        loginWithGoogle={loginWithGoogle}
+        loginWithEmail={loginWithEmail}
+        registerWithEmail={registerWithEmail}
+        logout={logout}
+      />
+
+      {/* Footer */}
+      <footer className="border-t border-slate-800/80 bg-slate-900/50 py-6 mt-12 text-center text-xs text-slate-500 space-y-1">
+        <p>אתר מעקב לימוד — התמחות באנדודונטיה | תוכנית 12 שבועות (6.8–1.11.2026)</p>
+        <p className="text-slate-600">סנכרון ענן בזמן אמת (Firebase Auth + Firestore) • תמיכה במחשב ובטלפון הנייד</p>
+      </footer>
+
+    </div>
+  );
+}
+
+export default App;
