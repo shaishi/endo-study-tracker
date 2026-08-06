@@ -162,6 +162,26 @@ export const LoginGate: React.FC<LoginGateProps> = ({
                 <p className="text-xs text-slate-400">כנס מידית במצב מקומי או התחבר לסנכרון ענן בין מכשירים</p>
               </div>
 
+              {/* Banner if user is on a Vercel preview hash URL instead of main production domain */}
+              {typeof window !== 'undefined' && 
+               window.location.hostname.includes('.vercel.app') && 
+               window.location.hostname !== 'endo-study-tracker.vercel.app' && (
+                <div className="p-3.5 rounded-2xl bg-amber-950/80 border border-amber-500/40 text-amber-200 text-xs space-y-2">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-300">
+                    <span>📌 אתה גולש בקישור תצוגה מקדימה זמני</span>
+                  </div>
+                  <p className="leading-relaxed">
+                    להתחברות ענן באמצעות Google, היכנס לכתובת הראשית המאושרת ב-Firebase, או לחץ על הכפתור הסגול למטה לכניסה מיידית:
+                  </p>
+                  <a
+                    href="https://endo-study-tracker.vercel.app"
+                    className="inline-flex items-center gap-1 font-extrabold text-cyan-300 hover:underline pt-1"
+                  >
+                    <span>עבור לאתר הראשי: endo-study-tracker.vercel.app 🔗</span>
+                  </a>
+                </div>
+              )}
+
               {/* Direct Local / Guest Entry Button (1-Click Primary Action) */}
               <button
                 onClick={onContinueAsGuest}
