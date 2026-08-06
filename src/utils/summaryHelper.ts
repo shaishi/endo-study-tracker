@@ -69,3 +69,20 @@ export const getArticleSummary = (item: LiteratureItem): KeySummary => {
     clinicalTakeaway: 'רצוי לסקור את התקציר והמסקנות הקליניות לקראת הבחינה.'
   };
 };
+
+export const isHighYieldArticle = (item: LiteratureItem): boolean => {
+  const cit = (item.citation || '').toLowerCase();
+
+  // Top landmark authors & guidelines
+  const landmarkKeywords = [
+    'vertucci', 'zehnder', 'aae consensus', 'iadt', 'kakehashi', 
+    'bystrom', 'sjogren', 'sundqvist', 'cleghorn', 'haapasalo', 
+    'trope', 'friedman', 'gutmann', 'peters', 'orstavik', 'baumgartner'
+  ];
+
+  if (item.type === 'guideline') return true;
+  if (landmarkKeywords.some(kw => cit.includes(kw))) return true;
+  if (item.id <= 15) return true;
+
+  return false;
+};

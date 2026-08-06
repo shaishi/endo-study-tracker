@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   BarChart2,
   Filter,
-  Target,
   Sparkles
 } from 'lucide-react';
 import { quizQuestionsData } from '../data/quizData';
@@ -26,6 +25,7 @@ export const QuizSimulatorView: React.FC<QuizSimulatorViewProps> = ({
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [onlyMissed, setOnlyMissed] = useState<boolean>(false);
+  const [isRapidFire, setIsRapidFire] = useState<boolean>(false);
   
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
@@ -49,8 +49,11 @@ export const QuizSimulatorView: React.FC<QuizSimulatorViewProps> = ({
     if (selectedCategory !== 'all') {
       list = list.filter(q => q.category === selectedCategory);
     }
+    if (isRapidFire) {
+      list = list.slice(0, 5);
+    }
     return list;
-  }, [selectedCategory, onlyMissed, missedSet]);
+  }, [selectedCategory, onlyMissed, isRapidFire, missedSet]);
 
   const currentQuestion = activeQuestions[currentIndex] || activeQuestions[0];
 
@@ -166,21 +169,39 @@ export const QuizSimulatorView: React.FC<QuizSimulatorViewProps> = ({
           ))}
         </div>
 
-        {/* Missed Questions Queue Switch */}
-        <button
-          onClick={() => {
-            setOnlyMissed(!onlyMissed);
-            handleRestart();
-          }}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
-            onlyMissed
-              ? 'bg-rose-950/80 border-rose-500/50 text-rose-300 shadow-md'
-              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Target className="w-3.5 h-3.5 text-rose-400" />
-          <span>תרגול טעויות בלבד ({missedSet.size})</span>
-        </button>
+        {/* Toggle Switches */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setIsRapidFire(!isRapidFire);
+              handleRestart();
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+              isRapidFire
+                ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold shadow-md'
+                : 'bg-slate-900 text-amber-300 border-slate-700 hover:bg-slate-800'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>⚡ בחינת פלאש (5 שאלות ב-3 דקות)</span>
+          </button>
+
+          {/* Missed Questions Queue Switch */}
+          <button
+            onClick={() => {
+              setOnlyMissed(!onlyMissed);
+              handleRestart();
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+              onlyMissed
+                ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold shadow-md'
+                : 'bg-slate-900 text-amber-300 border-slate-700 hover:bg-slate-800'
+            }`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            <span>שאלות לחיזוק ({userState.missedQuestionIds?.length || 0})</span>
+          </button>
+        </div>
       </div>
 
       {/* Category Weak Spot Diagnostics Card (If user has history) */}

@@ -12,7 +12,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import type { EndoData, UserState, LiteratureItem } from '../types';
-import { getArticleSummary } from '../utils/summaryHelper';
+import { getArticleSummary, isHighYieldArticle } from '../utils/summaryHelper';
 
 interface LiteratureViewProps {
   data: EndoData;
@@ -34,6 +34,7 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
   const [phaseFilter, setPhaseFilter] = useState<'ALL' | 'PHASE_1' | 'PHASE_2'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'UNREAD' | 'READ' | 'REVIEW'>('ALL');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'guideline' | 'article'>('ALL');
+  const [isHighYieldOnly, setIsHighYieldOnly] = useState(false);
 
   const [activeNoteModalId, setActiveNoteModalId] = useState<number | null>(null);
   const [tempNoteText, setTempNoteText] = useState<string>('');
@@ -77,10 +78,11 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
 
       // Type
       if (typeFilter !== 'ALL' && item.type !== typeFilter) return false;
+      if (isHighYieldOnly && !isHighYieldArticle(item)) return false;
 
       return true;
     });
-  }, [data.literature, searchQuery, categoryFilter, phaseFilter, statusFilter, typeFilter, userState]);
+  }, [data.literature, searchQuery, categoryFilter, phaseFilter, statusFilter, typeFilter, isHighYieldOnly, userState]);
 
   // Separate Phase 1 vs Phase 2 items
   const phase1Items = useMemo(() => filteredItems.filter(i => i.week !== null), [filteredItems]);
@@ -193,6 +195,27 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
                 <option value="guideline">הנחיה / מסמך עמדה</option>
               </select>
             </div>
+          </div>
+
+          {/* High-Yield Quick Filter Toggle */}
+          <div className="pt-2 flex items-center justify-between border-t border-slate-800">
+            <button
+              onClick={() => setIsHighYieldOnly(!isHighYieldOnly)}
+              className={`px-3.5 py-1.5 rounded-xl border text-xs font-extrabold transition flex items-center gap-1.5 ${
+                isHighYieldOnly
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+                  : 'bg-amber-950/40 text-amber-300 border-amber-500/40 hover:bg-amber-900/50'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              <span>🔥 מאמרי ליבה חובה לבחינה (High-Yield Top Papers)</span>
+            </button>
+
+            {isHighYieldOnly && (
+              <span className="text-xs text-amber-300/80 font-medium">
+                מציג רק מאמרים והנחיות קלאסיות בעלות משקל מירבי בבחינת המומחיות
+              </span>
+            )}
           </div>
         </div>
       </div>
