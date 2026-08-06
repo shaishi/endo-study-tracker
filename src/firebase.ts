@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAeOQQhZ9oC5T-Gze76J4h549Q_S9g2rOU";
 const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "endo-tracker-d493c.firebaseapp.com";
@@ -25,5 +25,16 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
-export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
+
+let dbInstance: Firestore | null = null;
+try {
+  if (isFirebaseConfigured) {
+    dbInstance = getFirestore(app);
+  }
+} catch (err) {
+  console.warn('Firestore database initialization deferred/offline mode active:', err);
+  dbInstance = null;
+}
+
+export const db = dbInstance;

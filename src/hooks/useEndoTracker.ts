@@ -73,7 +73,10 @@ export function useEndoTracker() {
 
   // Listen to Firestore updates when logged in
   useEffect(() => {
-    if (!currentUser || !isFirebaseConfigured) return;
+    if (!db || !currentUser || !isFirebaseConfigured) {
+      setCloudSyncStatus('offline');
+      return;
+    }
 
     let unsubscribeSnapshot: (() => void) | null = null;
 
@@ -125,7 +128,7 @@ export function useEndoTracker() {
 
   // Save state to Firestore on update if user is authenticated
   const saveStateToCloud = useCallback((newState: UserState) => {
-    if (!currentUser || !isFirebaseConfigured) return;
+    if (!db || !currentUser || !isFirebaseConfigured) return;
     try {
       setCloudSyncStatus('syncing');
       const userDocRef = doc(db, 'users', currentUser.uid);
