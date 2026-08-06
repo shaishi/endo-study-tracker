@@ -56,6 +56,8 @@ export interface UserState {
   theme?: 'dark' | 'light';
   flashcardProgress?: Record<number, 'easy' | 'medium' | 'hard'>; // flashcardId -> difficulty
   quizScores?: Array<{ date: string; score: number; total: number }>;
+  quizHistory?: Array<{ questionId: number; isCorrect: boolean; category: string; selectedIndex: number; date: string }>;
+  missedQuestionIds?: number[];
   lastActiveDate: string | null;
   currentStreak: number;
   bestStreak: number;

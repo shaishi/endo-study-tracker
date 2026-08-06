@@ -445,6 +445,27 @@ export function useEndoTracker() {
     }));
   }, [updateStateAndSync]);
 
+  const recordQuestionAttempt = useCallback((questionId: number, isCorrect: boolean, category: string, selectedIndex: number) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    updateStateAndSync(prev => {
+      const history = prev.quizHistory || [];
+      const updatedHistory = [...history, { questionId, isCorrect, category, selectedIndex, date: todayStr }];
+      
+      const missed = new Set(prev.missedQuestionIds || []);
+      if (isCorrect) {
+        missed.delete(questionId);
+      } else {
+        missed.add(questionId);
+      }
+
+      return {
+        ...prev,
+        quizHistory: updatedHistory,
+        missedQuestionIds: Array.from(missed)
+      };
+    });
+  }, [updateStateAndSync]);
+
   return {
     userState,
     currentUser,
@@ -454,6 +475,7 @@ export function useEndoTracker() {
     toggleTheme,
     rateFlashcard,
     recordQuizScore,
+    recordQuestionAttempt,
     toggleLiteratureItem,
     toggleWeekChapter,
     toggleReviewFlag,

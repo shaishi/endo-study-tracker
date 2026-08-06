@@ -35,6 +35,7 @@ export function App() {
     toggleTheme,
     rateFlashcard,
     recordQuizScore,
+    recordQuestionAttempt,
     toggleLiteratureItem,
     toggleWeekChapter,
     toggleReviewFlag,
@@ -152,6 +153,7 @@ export function App() {
           <QuizSimulatorView
             userState={userState}
             recordQuizScore={recordQuizScore}
+            recordQuestionAttempt={recordQuestionAttempt}
           />
         )}
 
