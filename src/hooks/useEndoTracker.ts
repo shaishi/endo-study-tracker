@@ -329,13 +329,19 @@ export function useEndoTracker() {
       return { success: true };
     } catch (err: any) {
       console.error('Google Sign In Error:', err);
-      let msg = err.message || 'שגיאה בהתחברות';
-      if (msg.includes('api-key-not-valid') || msg.includes('invalid-api-key')) {
-        msg = 'מפתח ה-Firebase API אינו תקין. ניתן להמשיך בלחיצה על כניסה מיידית למערכת!';
-      } else if (msg.includes('operation-not-allowed')) {
-        msg = 'ספק ההתחברות (Google/Email) טרם הופעל ב-Firebase Console. לחץ על "כניסה מיידית למערכת המעקב" בכפתור למעלה לשימוש מיידי!';
-      } else if (msg.includes('unauthorized-domain')) {
-        msg = 'הדומיין של האתר טרם אושר ב-Firebase Authorized Domains. לחץ על "כניסה מיידית למערכת המעקב" בכפתור למעלה!';
+      const errCode = err.code || '';
+      const errMsg = err.message || '';
+      const currentHost = typeof window !== 'undefined' ? window.location.hostname : '';
+
+      let msg = errMsg || 'שגיאה בהתחברות';
+      if (errCode.includes('unauthorized-domain') || errMsg.includes('unauthorized-domain')) {
+        msg = `הדומיין ${currentHost} טרם אושר ב-Firebase. יש להוסיף את הדומיין המדויק: ${currentHost} לרשימת Authorized Domains ב-Firebase Console.`;
+      } else if (errCode.includes('operation-not-allowed') || errMsg.includes('operation-not-allowed')) {
+        msg = 'ספק ההתחברות של Google טרם הופעל ב-Firebase Console (Authentication -> Sign-in method -> Google -> Enable).';
+      } else if (errCode.includes('api-key-not-valid') || errMsg.includes('api-key-not-valid')) {
+        msg = 'מפתח ה-Firebase API אינו תקין.';
+      } else {
+        msg = `שגיאת Firebase [${errCode}]: ${errMsg} (דומיין נוכחי: ${currentHost})`;
       }
       return { success: false, error: msg };
     } finally {
