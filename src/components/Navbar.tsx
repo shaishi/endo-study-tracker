@@ -45,6 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   totalCount,
   currentStreak,
 }) => {
+  const isLight = theme === 'light';
   const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const coreNavItems = [
@@ -68,7 +69,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   const allNavItems = [...coreNavItems, ...activeLearningItems, ...trackingItems];
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-card border-b border-slate-700/60 bg-slate-900/90 backdrop-blur-xl">
+    <header className={`sticky top-0 z-40 w-full backdrop-blur-xl transition-colors duration-200 border-b ${
+      isLight 
+        ? 'bg-white/90 border-slate-200 shadow-sm text-slate-900' 
+        : 'bg-slate-900/90 border-slate-800 text-slate-100'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-3">
           
@@ -78,13 +83,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-extrabold text-base text-white leading-tight">מעקב אנדודונטיה</h1>
-              <p className="text-[10px] text-slate-400 hidden lg:block">הכנה להתמחות • 2026</p>
+              <h1 className={`font-extrabold text-base leading-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                מעקב אנדודונטיה
+              </h1>
+              <p className={`text-[10px] hidden lg:block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                הכנה להתמחות • 2026
+              </p>
             </div>
           </div>
 
           {/* Structured Navigation (Desktop) */}
-          <nav className="hidden xl:flex items-center gap-1.5 bg-slate-950/70 p-1.5 rounded-2xl border border-slate-800">
+          <nav className={`hidden xl:flex items-center gap-1.5 p-1.5 rounded-2xl border transition-colors ${
+            isLight 
+              ? 'bg-slate-100/90 border-slate-200/80' 
+              : 'bg-slate-950/70 border-slate-800'
+          }`}>
             {/* Group 1: Core Schedule */}
             <div className="flex items-center gap-1 px-1">
               {coreNavItems.map((item) => {
@@ -97,7 +110,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                       isActive
                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-bold'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                        : isLight
+                          ? 'text-slate-700 hover:text-indigo-600 hover:bg-slate-200/70'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -107,7 +122,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               })}
             </div>
 
-            <div className="w-px h-5 bg-slate-800 mx-0.5"></div>
+            <div className={`w-px h-5 mx-0.5 ${isLight ? 'bg-slate-300' : 'bg-slate-800'}`}></div>
 
             {/* Group 2: Active Learning & Recall */}
             <div className="flex items-center gap-1 px-1">
@@ -121,17 +136,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                       isActive
                         ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md font-bold'
-                        : 'text-cyan-300/90 hover:text-white hover:bg-slate-800/80'
+                        : isLight
+                          ? 'text-indigo-700 hover:text-indigo-900 hover:bg-indigo-50/80 font-bold'
+                          : 'text-cyan-300/90 hover:text-white hover:bg-slate-800/80'
                     }`}
                   >
-                    <Icon className="w-3.5 h-3.5 text-cyan-400" />
+                    <Icon className={`w-3.5 h-3.5 ${isLight ? 'text-indigo-600' : 'text-cyan-400'}`} />
                     <span>{item.label}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="w-px h-5 bg-slate-800 mx-0.5"></div>
+            <div className={`w-px h-5 mx-0.5 ${isLight ? 'bg-slate-300' : 'bg-slate-800'}`}></div>
 
             {/* Group 3: Tracking & Settings */}
             <div className="flex items-center gap-1 px-1">
@@ -145,7 +162,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                       isActive
                         ? 'bg-indigo-600 text-white shadow-md font-bold'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                        : isLight
+                          ? 'text-slate-700 hover:text-indigo-600 hover:bg-slate-200/70'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -157,7 +176,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Medium Desktop Compact Nav (lg screens) */}
-          <nav className="hidden md:flex xl:hidden items-center gap-1 bg-slate-950/70 p-1 rounded-xl border border-slate-800 overflow-x-auto max-w-[500px]">
+          <nav className={`hidden md:flex xl:hidden items-center gap-1 p-1 rounded-xl border overflow-x-auto max-w-[500px] ${
+            isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950/70 border-slate-800'
+          }`}>
             {allNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -168,7 +189,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition ${
                     isActive
                       ? 'bg-indigo-600 text-white font-bold'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                      : isLight
+                        ? 'text-slate-700 hover:text-indigo-600 hover:bg-slate-200'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -184,11 +207,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             {toggleTheme && (
               <button
                 onClick={toggleTheme}
-                className="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700/80 transition"
-                title={theme === 'light' ? 'עבור למצב כהה' : 'עבור למצב בהיר'}
+                className={`flex items-center justify-center w-8 h-8 rounded-xl border transition ${
+                  isLight 
+                    ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-indigo-600' 
+                    : 'bg-slate-800 hover:bg-slate-700 border-slate-700/80 text-amber-400'
+                }`}
+                title={isLight ? 'עבור למצב כהה' : 'עבור למצב בהיר'}
               >
-                {theme === 'light' ? (
-                  <Moon className="w-4 h-4 text-indigo-500" />
+                {isLight ? (
+                  <Moon className="w-4 h-4 text-indigo-600" />
                 ) : (
                   <Sun className="w-4 h-4 text-amber-400" />
                 )}
@@ -198,12 +225,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Search Trigger */}
             <button
               onClick={openSearch}
-              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded-xl border border-slate-700 text-xs transition"
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition ${
+                isLight
+                  ? 'bg-slate-100 hover:bg-slate-200/80 border-slate-200 text-slate-700'
+                  : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
+              }`}
               title="חיפוש (Cmd+K)"
             >
               <Search className="w-3.5 h-3.5" />
               <span className="hidden lg:inline">חיפוש...</span>
-              <kbd className="hidden lg:inline px-1 py-0.5 text-[9px] bg-slate-900 rounded text-slate-400 font-mono">⌘K</kbd>
+              <kbd className={`hidden lg:inline px-1 py-0.5 text-[9px] rounded font-mono ${
+                isLight ? 'bg-slate-200 text-slate-600' : 'bg-slate-900 text-slate-400'
+              }`}>⌘K</kbd>
             </button>
 
             {/* Cloud Sync Button */}
@@ -211,12 +244,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={openAuthModal}
               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition ${
                 currentUser
-                  ? 'bg-emerald-950/60 border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/60'
-                  : 'bg-indigo-950/60 border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/60'
+                  ? isLight
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                    : 'bg-emerald-950/60 border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/60'
+                  : isLight
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-800 hover:bg-indigo-100'
+                    : 'bg-indigo-950/60 border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/60'
               }`}
               title={currentUser ? `מחובר: ${currentUser.email}` : 'סנכרון ענן בין מכשירים'}
             >
-              <Cloud className={`w-3.5 h-3.5 ${cloudSyncStatus === 'syncing' ? 'animate-pulse text-indigo-400' : ''}`} />
+              <Cloud className={`w-3.5 h-3.5 ${cloudSyncStatus === 'syncing' ? 'animate-pulse text-indigo-500' : ''}`} />
               <span className="hidden lg:inline">
                 {currentUser ? (cloudSyncStatus === 'synced' ? 'סנכרון פעיל ☁️' : 'מסנכרן...') : 'סנכרון'}
               </span>
@@ -224,22 +261,32 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Streak Pill */}
             {currentStreak > 0 && (
-              <div className="hidden sm:flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2 py-1 rounded-xl text-xs font-semibold">
+              <div className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-semibold border ${
+                isLight
+                  ? 'bg-amber-50 border-amber-200 text-amber-800'
+                  : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+              }`}>
                 <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                 <span>{currentStreak}י</span>
               </div>
             )}
 
             {/* Progress Pill */}
-            <div className="flex items-center gap-1.5 bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 px-2.5 py-1 rounded-xl text-xs font-bold">
-              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400" />
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border ${
+              isLight
+                ? 'bg-indigo-50 border-indigo-200 text-indigo-800'
+                : 'bg-indigo-950/40 border-indigo-500/30 text-indigo-300'
+            }`}>
+              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" />
               <span>{percent}%</span>
             </div>
           </div>
         </div>
 
         {/* Mobile Navigation Scrollbar */}
-        <div className="md:hidden flex items-center gap-1.5 py-2 border-t border-slate-800/80 overflow-x-auto">
+        <div className={`md:hidden flex items-center gap-1.5 py-2 border-t overflow-x-auto ${
+          isLight ? 'border-slate-200' : 'border-slate-800/80'
+        }`}>
           {allNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -250,7 +297,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition ${
                   isActive
                     ? 'bg-indigo-600 text-white font-bold shadow-sm'
-                    : 'text-slate-300 bg-slate-800/50 border border-slate-700/50'
+                    : isLight
+                      ? 'text-slate-700 bg-slate-100 border border-slate-200'
+                      : 'text-slate-300 bg-slate-800/50 border border-slate-700/50'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
