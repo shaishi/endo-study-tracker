@@ -26,6 +26,7 @@ const defaultState: UserState = {
   blockedDays: [],
   dailyActivityLog: {},
   maxDailyUnitsThreshold: 6,
+  theme: 'dark',
   lastActiveDate: null,
   currentStreak: 0,
   bestStreak: 0,
@@ -416,12 +417,20 @@ export function useEndoTracker() {
     setCurrentUser(null);
   };
 
+  const toggleTheme = useCallback(() => {
+    updateStateAndSync(prev => ({
+      ...prev,
+      theme: prev.theme === 'light' ? 'dark' : 'light'
+    }));
+  }, [updateStateAndSync]);
+
   return {
     userState,
     currentUser,
     cloudSyncStatus,
     isSyncing,
     isFirebaseConfigured,
+    toggleTheme,
     toggleLiteratureItem,
     toggleWeekChapter,
     toggleReviewFlag,

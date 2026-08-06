@@ -6,7 +6,9 @@ import {
   Calendar, 
   Sliders, 
   Printer, 
-  AlertOctagon
+  AlertOctagon,
+  Sun,
+  Moon
 } from 'lucide-react';
 import type { UserState } from '../types';
 
@@ -18,6 +20,7 @@ interface SettingsViewProps {
   exportStateJson: () => void;
   importStateJson: (data: any) => boolean;
   resetAllProgress: () => void;
+  toggleTheme?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -28,6 +31,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   exportStateJson,
   importStateJson,
   resetAllProgress,
+  toggleTheme,
 }) => {
   const [importStatusMessage, setImportStatusMessage] = useState<string | null>(null);
   const [blockedDateInput, setBlockedDateInput] = useState('');
@@ -67,11 +71,55 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <div className="glass-card rounded-2xl p-6 border border-slate-700/60 bg-slate-900/60">
         <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
           <Settings className="w-6 h-6 text-indigo-400" />
-          <span>הגדרות, גיבוי והתאמה אישית</span>
+          <span>הגדרות, ערכת נושא וגיבוי</span>
         </h2>
         <p className="text-slate-400 text-sm mt-1">
-          ניהול גיבויים, ימים חסומים ללימוד, תאריך יעד, והדפסת תוכנית עבודה
+          התאמת ערכת נושא (כהה/בהיר), גיבויים, ימים חסומים ללימוד ותאריך יעד
         </p>
+      </div>
+
+      {/* Theme Switcher Bar */}
+      <div className="glass-card rounded-2xl p-5 border border-slate-700/60 bg-slate-800/50 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            {userState.theme === 'light' ? (
+              <Sun className="w-5 h-5 text-amber-400" />
+            ) : (
+              <Moon className="w-5 h-5 text-indigo-400" />
+            )}
+            <span>ערכת נושא תצוגתית (Light / Dark Mode)</span>
+          </h3>
+          <p className="text-xs text-slate-300 mt-0.5">
+            בחר את ערכת הנושא הנוחה לך ללמידה ביום או בלילה
+          </p>
+        </div>
+
+        {toggleTheme && (
+          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button
+              onClick={() => userState.theme !== 'dark' && toggleTheme()}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
+                userState.theme !== 'light'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Moon className="w-4 h-4 text-indigo-300" />
+              <span>כהה (Dark)</span>
+            </button>
+            <button
+              onClick={() => userState.theme !== 'light' && toggleTheme()}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
+                userState.theme === 'light'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Sun className="w-4 h-4 text-amber-950" />
+              <span>בהיר (Light)</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

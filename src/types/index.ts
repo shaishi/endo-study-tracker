@@ -53,6 +53,7 @@ export interface UserState {
   blockedDays: string[];
   dailyActivityLog: Record<string, number>; // "YYYY-MM-DD" => count checked on that date
   maxDailyUnitsThreshold: number;
+  theme?: 'dark' | 'light';
   lastActiveDate: string | null;
   currentStreak: number;
   bestStreak: number;

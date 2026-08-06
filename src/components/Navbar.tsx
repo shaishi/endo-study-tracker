@@ -8,7 +8,9 @@ import {
   Settings, 
   Search,
   Flame,
-  Cloud
+  Cloud,
+  Sun,
+  Moon
 } from 'lucide-react';
 import type { User } from 'firebase/auth';
 
@@ -17,6 +19,8 @@ interface NavbarProps {
   setActiveTab: (tab: string) => void;
   openSearch: () => void;
   openAuthModal: () => void;
+  theme?: 'dark' | 'light';
+  toggleTheme?: () => void;
   currentUser: User | null;
   cloudSyncStatus: 'synced' | 'syncing' | 'offline' | 'error';
   completedCount: number;
@@ -29,6 +33,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   openSearch,
   openAuthModal,
+  theme,
+  toggleTheme,
   currentUser,
   cloudSyncStatus,
   completedCount,
@@ -86,6 +92,21 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Tools & Account Sync */}
           <div className="flex items-center gap-2.5">
+            {/* Theme Toggle Button */}
+            {toggleTheme && (
+              <button
+                onClick={toggleTheme}
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 dark:text-amber-300 border border-slate-700 transition"
+                title={theme === 'light' ? 'עבור למצב כהה (Dark Mode)' : 'עבור למצב בהיר (Light Mode)'}
+              >
+                {theme === 'light' ? (
+                  <Moon className="w-4 h-4 text-indigo-600" />
+                ) : (
+                  <Sun className="w-4 h-4 text-amber-400" />
+                )}
+              </button>
+            )}
+
             {/* Search Trigger */}
             <button
               onClick={openSearch}

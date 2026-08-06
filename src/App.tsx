@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import rawData from './data/endo_data.json';
 import type { EndoData } from './types';
 import { useEndoTracker } from './hooks/useEndoTracker';
@@ -28,6 +28,7 @@ export function App() {
     currentUser,
     cloudSyncStatus,
     isSyncing,
+    toggleTheme,
     toggleLiteratureItem,
     toggleWeekChapter,
     toggleReviewFlag,
@@ -45,6 +46,22 @@ export function App() {
     logout,
   } = useEndoTracker();
 
+  // Apply theme class to body and html
+  useEffect(() => {
+    const isLight = userState.theme === 'light';
+    if (isLight) {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+      document.body.classList.add('light-mode');
+      document.body.classList.remove('dark-mode');
+    } else {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+      document.body.classList.add('dark-mode');
+      document.body.classList.remove('light-mode');
+    }
+  }, [userState.theme]);
+
   // Compute adaptive schedule calculation
   const schedule = useMemo(() => {
     return calculateAdaptiveSchedule(data, userState);
@@ -52,6 +69,8 @@ export function App() {
 
   const totalLiteratureCount = data.literature.length;
   const completedLiteratureCount = userState.completedItemIds.length;
+
+  const isLight = userState.theme === 'light';
 
   // Gate Check: If user is not authenticated AND hasn't chosen guest mode -> Show LoginGate
   if (!currentUser && !isGuestMode) {
@@ -67,7 +86,9 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white dir-rtl">
+    <div className={`min-h-screen flex flex-col font-sans selection:bg-indigo-500 selection:text-white dir-rtl transition-colors duration-200 ${
+      isLight ? 'bg-slate-100 text-slate-900' : 'bg-slate-950 text-slate-100'
+    }`}>
       
       {/* Header / Navbar */}
       <Navbar
@@ -75,6 +96,8 @@ export function App() {
         setActiveTab={setActiveTab}
         openSearch={() => setIsSearchOpen(true)}
         openAuthModal={() => setIsAuthModalOpen(true)}
+        theme={userState.theme}
+        toggleTheme={toggleTheme}
         currentUser={currentUser}
         cloudSyncStatus={cloudSyncStatus}
         completedCount={completedLiteratureCount}
@@ -142,6 +165,7 @@ export function App() {
             exportStateJson={exportStateJson}
             importStateJson={importStateJson}
             resetAllProgress={resetAllProgress}
+            toggleTheme={toggleTheme}
           />
         )}
       </main>
