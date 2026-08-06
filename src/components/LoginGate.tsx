@@ -214,8 +214,15 @@ export const LoginGate: React.FC<LoginGateProps> = ({
                 </div>
 
                 {errorMessage && (
-                  <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-500/30 text-rose-300 text-xs font-medium">
-                    {errorMessage}
+                  <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-500/30 text-rose-300 text-xs font-medium space-y-2">
+                    <p>{errorMessage}</p>
+                    <button
+                      type="button"
+                      onClick={onContinueAsGuest}
+                      className="w-full py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition"
+                    >
+                      הכנס למערכת במצב מקומי (אורח) ←
+                    </button>
                   </div>
                 )}
 

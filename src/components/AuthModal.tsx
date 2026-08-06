@@ -183,8 +183,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               {errorMessage && (
-                <div className="p-2.5 rounded-lg bg-rose-950/80 border border-rose-500/30 text-rose-300 text-xs font-medium">
-                  {errorMessage}
+                <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-500/30 text-rose-300 text-xs font-medium space-y-2">
+                  <p>{errorMessage}</p>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="w-full py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition"
+                  >
+                    המשך במצב מקומי
+                  </button>
                 </div>
               )}
 

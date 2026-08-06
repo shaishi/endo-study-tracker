@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { UserState } from '../types';
-import { auth, db, googleProvider } from '../firebase';
+import { auth, db, googleProvider, isFirebaseConfigured } from '../firebase';
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
@@ -56,6 +56,11 @@ export function useEndoTracker() {
 
   // Auth Listener & Firestore Real-Time Sync
   useEffect(() => {
+    if (!isFirebaseConfigured) {
+      setCloudSyncStatus('offline');
+      return;
+    }
+
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       if (!user) {
@@ -68,7 +73,7 @@ export function useEndoTracker() {
 
   // Listen to Firestore updates when logged in
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !isFirebaseConfigured) return;
 
     setCloudSyncStatus('syncing');
     const userDocRef = doc(db, 'users', currentUser.uid);
@@ -98,7 +103,7 @@ export function useEndoTracker() {
 
   // Save state to Firestore on update if user is authenticated
   const saveStateToCloud = useCallback((newState: UserState) => {
-    if (!currentUser) return;
+    if (!currentUser || !isFirebaseConfigured) return;
     setCloudSyncStatus('syncing');
     const userDocRef = doc(db, 'users', currentUser.uid);
     setDoc(userDocRef, newState, { merge: true })
@@ -282,44 +287,77 @@ export function useEndoTracker() {
 
   // Auth Functions
   const loginWithGoogle = async () => {
+    if (!isFirebaseConfigured) {
+      return { 
+        success: false, 
+        error: 'טרם הוגדר מפתח Firebase API תקין. עליך להגדיר מפתח ב-Vercel, או ללחוץ על "המשך במצב אורח מקומי" לשימוש מיידי!' 
+      };
+    }
     try {
       setIsSyncing(true);
       await signInWithPopup(auth, googleProvider);
       return { success: true };
     } catch (err: any) {
       console.error('Google Sign In Error:', err);
-      return { success: false, error: err.message };
+      let msg = err.message || 'שגיאה בהתחברות';
+      if (msg.includes('api-key-not-valid') || msg.includes('invalid-api-key')) {
+        msg = 'מפתח ה-Firebase API אינו תקין או טרם הוגדר. ניתן להמשיך במצב אורח מקומי בעזרת הכפתור למטה!';
+      }
+      return { success: false, error: msg };
     } finally {
       setIsSyncing(false);
     }
   };
 
   const loginWithEmail = async (e: string, p: string) => {
+    if (!isFirebaseConfigured) {
+      return { 
+        success: false, 
+        error: 'טרם הוגדר מפתח Firebase API תקין. עליך להגדיר מפתח ב-Vercel, או ללחוץ על "המשך במצב אורח מקומי" לשימוש מיידי!' 
+      };
+    }
     try {
       setIsSyncing(true);
       await signInWithEmailAndPassword(auth, e, p);
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message };
+      let msg = err.message || 'שגיאה בהתחברות';
+      if (msg.includes('api-key-not-valid')) {
+        msg = 'מפתח ה-Firebase API אינו תקין או טרם הוגדר. ניתן להמשיך במצב אורח מקומי בעזרת הכפתור למטה!';
+      }
+      return { success: false, error: msg };
     } finally {
       setIsSyncing(false);
     }
   };
 
   const registerWithEmail = async (e: string, p: string) => {
+    if (!isFirebaseConfigured) {
+      return { 
+        success: false, 
+        error: 'טרם הוגדר מפתח Firebase API תקין. עליך להגדיר מפתח ב-Vercel, או ללחוץ על "המשך במצב אורח מקומי" לשימוש מיידי!' 
+      };
+    }
     try {
       setIsSyncing(true);
       await createUserWithEmailAndPassword(auth, e, p);
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message };
+      let msg = err.message || 'שגיאה בהתחברות';
+      if (msg.includes('api-key-not-valid')) {
+        msg = 'מפתח ה-Firebase API אינו תקין או טרם הוגדר. ניתן להמשיך במצב אורח מקומי בעזרת הכפתור למטה!';
+      }
+      return { success: false, error: msg };
     } finally {
       setIsSyncing(false);
     }
   };
 
   const logout = async () => {
-    await signOut(auth);
+    if (isFirebaseConfigured) {
+      await signOut(auth);
+    }
+    setCurrentUser(null);
   };
 
   return {
@@ -327,6 +365,7 @@ export function useEndoTracker() {
     currentUser,
     cloudSyncStatus,
     isSyncing,
+    isFirebaseConfigured,
     toggleLiteratureItem,
     toggleWeekChapter,
     toggleReviewFlag,
