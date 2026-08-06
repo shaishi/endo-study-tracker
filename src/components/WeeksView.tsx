@@ -11,6 +11,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import type { EndoData, UserState, LiteratureItem } from '../types';
+import { getArticleSummary } from '../utils/summaryHelper';
 
 interface WeeksViewProps {
   data: EndoData;
@@ -37,6 +38,7 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
 
   const [activeNoteModalId, setActiveNoteModalId] = useState<number | null>(null);
   const [tempNoteText, setTempNoteText] = useState<string>('');
+  const [expandedSummaryId, setExpandedSummaryId] = useState<number | null>(null);
 
   const litMap = new Map<number, LiteratureItem>();
   data.literature.forEach(item => litMap.set(item.id, item));
@@ -205,6 +207,8 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
                       const isDone = userState.completedItemIds.includes(item.id);
                       const isReviewFlagged = userState.reviewItemIds.includes(item.id);
                       const hasNote = Boolean(userState.notes[item.id]);
+                      const isSummaryExpanded = expandedSummaryId === item.id;
+                      const summary = getArticleSummary(item);
 
                       return (
                         <div
@@ -227,7 +231,7 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
                               )}
                             </button>
 
-                            <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex-1 min-w-0 space-y-1.5">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className={`text-[10px] font-medium px-2 py-0.5 rounded border ${
                                   item.type === 'guideline'
@@ -239,11 +243,6 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
                                 <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                                   {item.category}
                                 </span>
-                                {item.link_type === 'direct_pmid' && (
-                                  <span className="text-[10px] text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded">
-                                    PMID {item.pmid}
-                                  </span>
-                                )}
                               </div>
 
                               <div className="citation-text text-sm font-semibold text-slate-100 leading-snug">
@@ -256,45 +255,91 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
                                   <span>{userState.notes[item.id]}</span>
                                 </div>
                               )}
-                            </div>
 
-                            {/* Action Buttons */}
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                onClick={() => toggleReviewFlag(item.id)}
-                                className={`p-1.5 rounded-lg transition ${
-                                  isReviewFlagged
-                                    ? 'bg-amber-500/20 text-amber-400'
-                                    : 'text-slate-400 hover:text-slate-200'
-                                }`}
-                                title={isReviewFlagged ? 'הסר דגל חזרה' : 'סמן לחזרה'}
-                              >
-                                <Bookmark className={`w-4 h-4 ${isReviewFlagged ? 'fill-amber-400' : ''}`} />
-                              </button>
-
-                              <button
-                                onClick={() => handleOpenNote(item.id)}
-                                className={`p-1.5 rounded-lg transition ${
-                                  hasNote
-                                    ? 'bg-indigo-500/20 text-indigo-300'
-                                    : 'text-slate-400 hover:text-slate-200'
-                                }`}
-                                title="הערה אישית"
-                              >
-                                <MessageSquare className="w-4 h-4" />
-                              </button>
-
-                              {item.link && (
-                                <a
-                                  href={item.link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-1.5 rounded-lg text-indigo-300 hover:text-indigo-200 hover:bg-slate-700/50 transition"
-                                  title="פתח קישור"
+                              {/* Action Tools Toolbar */}
+                              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                                
+                                {/* Executive Summary Button */}
+                                <button
+                                  onClick={() => setExpandedSummaryId(isSummaryExpanded ? null : item.id)}
+                                  className={`px-2.5 py-1 rounded-lg border font-bold transition flex items-center gap-1 ${
+                                    isSummaryExpanded
+                                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-md'
+                                      : 'bg-indigo-950/60 border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/60'
+                                  }`}
                                 >
-                                  <ExternalLink className="w-4 h-4" />
-                                </a>
+                                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                                  <span>תקציר מנהלים ⚡</span>
+                                </button>
+
+                                {/* Direct Link */}
+                                {item.link && (
+                                  <a
+                                    href={item.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 font-medium transition flex items-center gap-1"
+                                  >
+                                    <span>קרא מאמר</span>
+                                    <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                )}
+
+                                {/* Review Flag */}
+                                <button
+                                  onClick={() => toggleReviewFlag(item.id)}
+                                  className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1 ${
+                                    isReviewFlagged
+                                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
+                                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                                  }`}
+                                >
+                                  <Bookmark className="w-3.5 h-3.5" />
+                                  <span>{isReviewFlagged ? 'מסומן לחזרה' : 'לחזור על זה'}</span>
+                                </button>
+
+                                {/* Note */}
+                                <button
+                                  onClick={() => handleOpenNote(item.id)}
+                                  className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1 ${
+                                    hasNote
+                                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 font-bold'
+                                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                                  }`}
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                  <span>{hasNote ? 'ערוך הערה' : 'הוסף הערה'}</span>
+                                </button>
+
+                              </div>
+
+                              {/* Expanded Executive Summary Drawer */}
+                              {isSummaryExpanded && (
+                                <div className="mt-3 p-3.5 rounded-xl bg-slate-950/90 border border-indigo-500/40 space-y-2.5 animate-fadeIn text-xs text-right">
+                                  <div className="font-extrabold text-indigo-300 flex items-center gap-1.5 border-b border-slate-800 pb-1.5">
+                                    <Sparkles className="w-4 h-4 text-amber-400" />
+                                    <span>השורה התחתונה לבחינת המומחיות:</span>
+                                  </div>
+                                  <p className="text-slate-200 font-medium leading-relaxed">
+                                    {summary.bottomLine}
+                                  </p>
+                                  
+                                  <div className="space-y-1">
+                                    <div className="font-bold text-slate-400 text-[11px]">3 נקודות מפתח שחובה לזכור:</div>
+                                    <ul className="list-disc list-inside text-slate-300 space-y-1 pr-1">
+                                      {summary.keyPoints.map((pt, idx) => (
+                                        <li key={idx}>{pt}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+
+                                  <div className="pt-1 text-[11px] text-emerald-300 font-semibold flex items-center gap-1">
+                                    <span>💡 דגש קליני:</span>
+                                    <span>{summary.clinicalTakeaway}</span>
+                                  </div>
+                                </div>
                               )}
+
                             </div>
                           </div>
                         </div>
