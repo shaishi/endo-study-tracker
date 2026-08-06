@@ -62,9 +62,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'quiz', label: 'סימולטור', icon: Award },
   ];
 
+  const isAdmin = !currentUser || currentUser.email === 'shai.shilo@gmail.com';
+
   const trackingItems = [
     { id: 'dashboard', label: 'לוח מחוונים', icon: BarChart3 },
-    { id: 'admin', label: 'מנהל 👑', icon: ShieldCheck },
+    ...(isAdmin ? [{ id: 'admin', label: 'מנהל 👑', icon: ShieldCheck }] : []),
     { id: 'settings', label: 'הגדרות', icon: Settings },
   ];
 

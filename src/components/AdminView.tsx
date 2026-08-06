@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Users, 
@@ -12,17 +12,19 @@ import {
   Download,
   Award
 } from 'lucide-react';
+import { db } from '../firebase';
+import { collection, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { ResidentProfile, UserState } from '../types';
 
 interface AdminViewProps {
   userState: UserState;
 }
 
-// Initial default resident directory (for demo & live sync)
+// Default fallback resident directory
 const INITIAL_RESIDENTS: ResidentProfile[] = [
   {
     uid: 'admin-shai',
-    email: 'shai_shilo@endo-tracker.org.il',
+    email: 'shai.shilo@gmail.com',
     displayName: 'ד"ר שי שילו (מנהל ראשי)',
     lastActive: 'היום 18:45',
     completedCount: 69,
@@ -52,28 +54,6 @@ const INITIAL_RESIDENTS: ResidentProfile[] = [
     currentStreak: 3,
     role: 'resident',
     status: 'active'
-  },
-  {
-    uid: 'res-3',
-    email: 'dr.mizrachi@rambam.health.gov.il',
-    displayName: 'ד"ר רועי מזרחי',
-    lastActive: 'לפני 3 ימים',
-    completedCount: 22,
-    progressPercent: 8,
-    currentStreak: 0,
-    role: 'resident',
-    status: 'active'
-  },
-  {
-    uid: 'res-4',
-    email: 'dr.shapira@tlvmc.gov.il',
-    displayName: 'ד"ר יעל שפירא',
-    lastActive: 'לפני שבועיים',
-    completedCount: 5,
-    progressPercent: 2,
-    currentStreak: 0,
-    role: 'resident',
-    status: 'suspended'
   }
 ];
 
@@ -81,6 +61,43 @@ export const AdminView: React.FC<AdminViewProps> = () => {
   const [residents, setResidents] = useState<ResidentProfile[]>(INITIAL_RESIDENTS);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
+  const [isLiveFirestore, setIsLiveFirestore] = useState(false);
+
+  // Subscribe to real-time Firestore user profiles
+  useEffect(() => {
+    if (!db) return;
+    try {
+      const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+        if (!snapshot.empty) {
+          const liveUsers: ResidentProfile[] = snapshot.docs.map(docSnap => {
+            const data = docSnap.data();
+            const completedCount = data.completedItemIds?.length || data.completedCount || 0;
+            const email = data.email || 'מתמחה';
+            const isMainAdmin = email === 'shai.shilo@gmail.com';
+
+            return {
+              uid: docSnap.id,
+              email: email,
+              displayName: data.displayName || email.split('@')[0] || 'מתמחה',
+              lastActive: data.lastActive || 'לאחרונה',
+              completedCount: completedCount,
+              progressPercent: Math.min(100, Math.round((completedCount / 266) * 100)),
+              currentStreak: data.currentStreak || 0,
+              role: isMainAdmin ? 'admin' : (data.role || 'resident'),
+              status: data.status || 'active'
+            };
+          });
+          setResidents(liveUsers);
+          setIsLiveFirestore(true);
+        }
+      }, (err) => {
+        console.warn('Firestore live user subscription note:', err);
+      });
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('Firestore subscription exception:', err);
+    }
+  }, []);
 
   const filteredResidents = useMemo(() => {
     return residents.filter(r => {
@@ -100,21 +117,33 @@ export const AdminView: React.FC<AdminViewProps> = () => {
     return { total, activeCount, avgProgress, topPerformer };
   }, [residents]);
 
-  const handleToggleStatus = (uid: string) => {
-    setResidents(prev => prev.map(r => {
-      if (r.uid === uid) {
-        return {
-          ...r,
-          status: r.status === 'active' ? 'suspended' : 'active'
-        };
+  const handleToggleStatus = async (uid: string) => {
+    const target = residents.find(r => r.uid === uid);
+    if (!target) return;
+    const newStatus = target.status === 'active' ? 'suspended' : 'active';
+
+    setResidents(prev => prev.map(r => r.uid === uid ? { ...r, status: newStatus } : r));
+
+    if (db && isLiveFirestore) {
+      try {
+        await updateDoc(doc(db, 'users', uid), { status: newStatus });
+      } catch (err) {
+        console.warn('Error updating status in Firestore:', err);
       }
-      return r;
-    }));
+    }
   };
 
-  const handleDeleteUser = (uid: string, email: string) => {
+  const handleDeleteUser = async (uid: string, email: string) => {
     if (window.confirm(`האם אתה בטוח שברצונך למחוק לחלוטין את המתמחה ${email}?`)) {
       setResidents(prev => prev.filter(r => r.uid !== uid));
+
+      if (db && isLiveFirestore) {
+        try {
+          await deleteDoc(doc(db, 'users', uid));
+        } catch (err) {
+          console.warn('Error deleting user from Firestore:', err);
+        }
+      }
     }
   };
 
@@ -140,11 +169,11 @@ export const AdminView: React.FC<AdminViewProps> = () => {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold mb-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>פאנל ניהול ומעקב מתמחים (Executive Residency Admin)</span>
+              <span>מנהל יחיד מאושר: shai.shilo@gmail.com</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white">ממשק מנהל האתר</h2>
             <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl">
-              ניהול מתמחים, ניטור קצב התקדמות לימוד, השהיית הרשאות גישה, ויצירת דוחות מחלקתיים.
+              מעקב בזמן אמת אחרי המשתמשים האמיתיים שהתחברו לאתר, קצב הלימוד, השהיית הרשאות ומחיקת יוזרים.
             </p>
           </div>
 
@@ -163,13 +192,13 @@ export const AdminView: React.FC<AdminViewProps> = () => {
         
         <div className="glass-card p-5 rounded-2xl border border-slate-800 bg-slate-900/80 space-y-2">
           <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-            <span>סה"כ מתמחים רשומים</span>
+            <span>סה"כ משתמשים שהתחברו</span>
             <Users className="w-4 h-4 text-indigo-400" />
           </div>
           <div className="text-2xl font-black text-white">{stats.total} משתמשים</div>
           <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
             <Activity className="w-3 h-3" />
-            <span>{stats.activeCount} פעילים כעת במערכת</span>
+            <span>{isLiveFirestore ? 'סנכרון בזמן אמת ב-Firestore' : 'מצב תצוגה'}</span>
           </div>
         </div>
 
@@ -197,11 +226,11 @@ export const AdminView: React.FC<AdminViewProps> = () => {
 
         <div className="glass-card p-5 rounded-2xl border border-slate-800 bg-slate-900/80 space-y-2">
           <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-            <span>סטטוס אבטחה והרשאות</span>
+            <span>הרשאות ניהול ראשיות</span>
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-base font-extrabold text-emerald-300">סנכרון ענן מאובטח</div>
-          <div className="text-[11px] text-slate-400">Firebase Firestore Cloud Sync</div>
+          <div className="text-sm font-extrabold text-emerald-300 font-mono">shai.shilo@gmail.com</div>
+          <div className="text-[11px] text-slate-400">מוסמך למחוק ולהשהות משתמשים</div>
         </div>
 
       </div>
@@ -255,7 +284,7 @@ export const AdminView: React.FC<AdminViewProps> = () => {
       <div className="glass-card rounded-3xl p-6 border border-slate-700/60 bg-slate-900/90 space-y-4 shadow-xl">
         <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
           <Users className="w-5 h-5 text-indigo-400" />
-          <span>ספריית מתמחים ומעקב התקדמות בזמן אמת ({filteredResidents.length})</span>
+          <span>ספריית מתמחים אמיתיים שהתחברו לאתר ({filteredResidents.length})</span>
         </h3>
 
         <div className="overflow-x-auto">

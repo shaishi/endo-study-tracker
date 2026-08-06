@@ -136,7 +136,18 @@ export function useEndoTracker() {
     try {
       setCloudSyncStatus('syncing');
       const userDocRef = doc(db, 'users', currentUser.uid);
-      setDoc(userDocRef, newState, { merge: true })
+      const profileData = {
+        ...newState,
+        uid: currentUser.uid,
+        email: currentUser.email || '',
+        displayName: currentUser.displayName || currentUser.email?.split('@')[0] || 'מתמחה',
+        role: currentUser.email === 'shai.shilo@gmail.com' ? 'admin' : 'resident',
+        lastActive: new Date().toLocaleDateString('he-IL') + ' ' + new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+        completedCount: newState.completedItemIds?.length || 0,
+        progressPercent: Math.round(((newState.completedItemIds?.length || 0) / 266) * 100),
+        status: 'active'
+      };
+      setDoc(userDocRef, profileData, { merge: true })
         .then(() => setCloudSyncStatus('synced'))
         .catch((err) => {
           console.warn('Cloud sync save warning:', err);
