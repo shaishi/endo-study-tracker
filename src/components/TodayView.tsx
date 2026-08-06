@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { ScheduleCalculation, UserState } from '../types';
 import { formatHebrewDate } from '../utils/adaptiveEngine';
+import { exportCalendarICS } from '../utils/calendarExporter';
 
 interface TodayViewProps {
   schedule: ScheduleCalculation;
@@ -136,7 +137,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => setActiveTab('flashcards')}
             className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition shadow-md whitespace-nowrap"
@@ -148,6 +149,14 @@ export const TodayView: React.FC<TodayViewProps> = ({
             className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700 whitespace-nowrap"
           >
             סימולטור שאלות ⏱️
+          </button>
+          <button
+            onClick={() => exportCalendarICS(schedule)}
+            className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-300 font-bold text-xs transition border border-emerald-500/30 whitespace-nowrap flex items-center justify-center gap-1"
+            title="ייצא לוח זמנים ליומן Google Calendar / Apple iCal"
+          >
+            <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+            <span>סנכרן ליומן 📅</span>
           </button>
         </div>
       </div>

@@ -19,6 +19,8 @@ import { FlashcardsView } from './components/FlashcardsView';
 import { CheatSheetsView } from './components/CheatSheetsView';
 import { QuizSimulatorView } from './components/QuizSimulatorView';
 import { AdminView } from './components/AdminView';
+import { FocusTimerModal } from './components/FocusTimerModal';
+import { TraumaDecisionTree } from './components/TraumaDecisionTree';
 
 const data = rawData as EndoData;
 
@@ -26,6 +28,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<string>('today');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isFocusTimerOpen, setIsFocusTimerOpen] = useState<boolean>(false);
   const [isGuestMode, setIsGuestMode] = useState<boolean>(false);
 
   const {
@@ -75,9 +78,6 @@ export function App() {
     return calculateAdaptiveSchedule(data, userState);
   }, [data, userState]);
 
-  const totalLiteratureCount = data.literature.length;
-  const completedLiteratureCount = userState.completedItemIds.length;
-
   const isLight = userState.theme === 'light';
 
   // Gate Check: If user is not authenticated AND hasn't chosen guest mode -> Show LoginGate
@@ -103,14 +103,15 @@ export function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         openSearch={() => setIsSearchOpen(true)}
+        onOpenFocusTimer={() => setIsFocusTimerOpen(true)}
         openAuthModal={() => setIsAuthModalOpen(true)}
-        theme={userState.theme}
-        toggleTheme={toggleTheme}
-        currentUser={currentUser}
-        cloudSyncStatus={cloudSyncStatus}
-        completedCount={completedLiteratureCount}
-        totalCount={totalLiteratureCount}
         currentStreak={userState.currentStreak}
+        completedCount={userState.completedItemIds?.length || 0}
+        totalCount={266}
+        cloudSyncStatus={cloudSyncStatus === 'synced' || cloudSyncStatus === 'syncing' ? cloudSyncStatus : 'offline'}
+        currentUser={currentUser}
+        theme={userState.theme || 'dark'}
+        toggleTheme={toggleTheme}
       />
 
       {/* Main Content Area */}
@@ -156,6 +157,10 @@ export function App() {
             recordQuizScore={recordQuizScore}
             recordQuestionAttempt={recordQuestionAttempt}
           />
+        )}
+
+        {activeTab === 'trauma' && (
+          <TraumaDecisionTree />
         )}
 
         {activeTab === 'literature' && (
@@ -226,6 +231,12 @@ export function App() {
           await logout();
           setIsGuestMode(false);
         }}
+      />
+
+      {/* Pomodoro Focus Timer Modal */}
+      <FocusTimerModal
+        isOpen={isFocusTimerOpen}
+        onClose={() => setIsFocusTimerOpen(false)}
       />
 
       {/* Footer */}

@@ -15,7 +15,9 @@ import {
   Brain,
   FileSpreadsheet,
   Award,
-  ShieldCheck
+  ShieldCheck,
+  Bandage,
+  Timer
 } from 'lucide-react';
 import type { User } from 'firebase/auth';
 
@@ -23,35 +25,37 @@ interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   openSearch: () => void;
+  onOpenFocusTimer?: () => void;
   openAuthModal: () => void;
+  currentStreak: number;
+  completedCount?: number;
+  totalCount?: number;
+  cloudSyncStatus: 'synced' | 'syncing' | 'offline';
+  currentUser: User | null;
   theme?: 'dark' | 'light';
   toggleTheme?: () => void;
-  currentUser: User | null;
-  cloudSyncStatus: 'synced' | 'syncing' | 'offline' | 'error';
-  completedCount: number;
-  totalCount: number;
-  currentStreak: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
   openSearch,
+  onOpenFocusTimer,
   openAuthModal,
-  theme,
-  toggleTheme,
-  currentUser,
-  cloudSyncStatus,
-  completedCount,
-  totalCount,
   currentStreak,
+  completedCount = 0,
+  totalCount = 266,
+  cloudSyncStatus,
+  currentUser,
+  theme = 'dark',
+  toggleTheme,
 }) => {
   const isLight = theme === 'light';
   const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const coreNavItems = [
     { id: 'today', label: 'היום', icon: Calendar },
-    { id: 'weeks', label: '12 שבועות', icon: BookOpen },
+    { id: 'weeks', label: '12 שבועות', icon: CheckCircle2 },
     { id: 'literature', label: 'ספרות (266)', icon: FileText },
     { id: 'books', label: 'ספרים (7)', icon: Book },
   ];
@@ -60,6 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'flashcards', label: 'כרטיסיות', icon: Brain },
     { id: 'cheatsheets', label: 'דפי סיכום', icon: FileSpreadsheet },
     { id: 'quiz', label: 'סימולטור', icon: Award },
+    { id: 'trauma', label: 'מחשבון טראומה', icon: Bandage },
   ];
 
   const isAdmin = !currentUser || currentUser.email === 'shai.shilo@gmail.com';
@@ -223,6 +228,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ) : (
                   <Sun className="w-4 h-4 text-amber-400" />
                 )}
+              </button>
+            )}
+
+            {/* Pomodoro Focus Timer Button */}
+            {onOpenFocusTimer && (
+              <button
+                onClick={onOpenFocusTimer}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition ${
+                  isLight
+                    ? 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-700'
+                    : 'bg-indigo-950/80 hover:bg-indigo-900/80 border-indigo-500/30 text-indigo-300'
+                }`}
+                title="פתח טיימר פוקוס פומודורו 25 דקות"
+              >
+                <Timer className="w-3.5 h-3.5 text-indigo-500" />
+                <span className="hidden sm:inline">פוקוס ⏱️</span>
               </button>
             )}
 
