@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   BookOpen, 
   Calendar, 
@@ -79,264 +79,312 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const allNavItems = [...coreNavItems, ...activeLearningItems, ...trackingItems];
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
-    <header className={`sticky top-0 z-40 w-full backdrop-blur-xl transition-colors duration-200 border-b ${
-      isLight 
-        ? 'bg-white/90 border-slate-200 shadow-sm text-slate-900' 
-        : 'bg-slate-900/90 border-slate-800 text-slate-100'
-    }`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-3">
-          
-          {/* Logo & Title */}
-          <div className="flex items-center gap-2.5 flex-shrink-0 cursor-pointer" onClick={() => setActiveTab('today')}>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <BookOpen className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className={`font-extrabold text-base leading-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                מעקב אנדודונטיה
-              </h1>
-              <p className={`text-[10px] hidden lg:block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                הכנה להתמחות • 2026
-              </p>
-            </div>
-          </div>
-
-          {/* Structured Navigation (Desktop) */}
-          <nav className={`hidden xl:flex items-center gap-1.5 p-1.5 rounded-2xl border transition-colors ${
-            isLight 
-              ? 'bg-slate-100/90 border-slate-200/80' 
-              : 'bg-slate-950/70 border-slate-800'
-          }`}>
-            {/* Group 1: Core Schedule */}
-            <div className="flex items-center gap-1 px-1">
-              {coreNavItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                      isActive
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-bold'
-                        : isLight
-                          ? 'text-slate-700 hover:text-indigo-600 hover:bg-slate-200/70'
-                          : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className={`w-px h-5 mx-0.5 ${isLight ? 'bg-slate-300' : 'bg-slate-800'}`}></div>
-
-            {/* Group 2: Active Learning & Recall */}
-            <div className="flex items-center gap-1 px-1">
-              {activeLearningItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                      isActive
-                        ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md font-bold'
-                        : isLight
-                          ? 'text-indigo-700 hover:text-indigo-900 hover:bg-indigo-50/80 font-bold'
-                          : 'text-cyan-300/90 hover:text-white hover:bg-slate-800/80'
-                    }`}
-                  >
-                    <Icon className={`w-3.5 h-3.5 ${isLight ? 'text-indigo-600' : 'text-cyan-400'}`} />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className={`w-px h-5 mx-0.5 ${isLight ? 'bg-slate-300' : 'bg-slate-800'}`}></div>
-
-            {/* Group 3: Tracking & Settings */}
-            <div className="flex items-center gap-1 px-1">
-              {trackingItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                      isActive
-                        ? 'bg-indigo-600 text-white shadow-md font-bold'
-                        : isLight
-                          ? 'text-slate-700 hover:text-indigo-600 hover:bg-slate-200/70'
-                          : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
-
-          {/* Medium Desktop Compact Nav (lg screens) */}
-          <nav className={`hidden md:flex xl:hidden items-center gap-1 p-1 rounded-xl border overflow-x-auto max-w-[500px] ${
-            isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950/70 border-slate-800'
-          }`}>
-            {allNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition ${
-                    isActive
-                      ? 'bg-indigo-600 text-white font-bold'
-                      : isLight
-                        ? 'text-slate-700 hover:text-indigo-600 hover:bg-slate-200'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Right Tools & Sync Info */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Theme Switcher */}
-            {toggleTheme && (
-              <button
-                onClick={toggleTheme}
-                className={`flex items-center justify-center w-8 h-8 rounded-xl border transition ${
-                  isLight 
-                    ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-indigo-600' 
-                    : 'bg-slate-800 hover:bg-slate-700 border-slate-700/80 text-amber-400'
-                }`}
-                title={isLight ? 'עבור למצב כהה' : 'עבור למצב בהיר'}
-              >
-                {isLight ? (
-                  <Moon className="w-4 h-4 text-indigo-600" />
-                ) : (
-                  <Sun className="w-4 h-4 text-amber-400" />
-                )}
-              </button>
-            )}
-
-            {/* Pomodoro Focus Timer Button */}
-            {onOpenFocusTimer && (
-              <button
-                onClick={onOpenFocusTimer}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition ${
-                  isLight
-                    ? 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-700'
-                    : 'bg-indigo-950/80 hover:bg-indigo-900/80 border-indigo-500/30 text-indigo-300'
-                }`}
-                title="פתח טיימר פוקוס פומודורו 25 דקות"
-              >
-                <Timer className="w-3.5 h-3.5 text-indigo-500" />
-                <span className="hidden sm:inline">פוקוס ⏱️</span>
-              </button>
-            )}
-
-            {/* Search Trigger */}
-            <button
-              onClick={openSearch}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition ${
-                isLight
-                  ? 'bg-slate-100 hover:bg-slate-200/80 border-slate-200 text-slate-700'
-                  : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
-              }`}
-              title="חיפוש (Cmd+K)"
-            >
-              <Search className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">חיפוש...</span>
-              <kbd className={`hidden lg:inline px-1 py-0.5 text-[9px] rounded font-mono ${
-                isLight ? 'bg-slate-200 text-slate-600' : 'bg-slate-900 text-slate-400'
-              }`}>⌘K</kbd>
-            </button>
-
-            {/* Cloud Sync Button */}
-            <button
-              onClick={openAuthModal}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition ${
-                currentUser
-                  ? isLight
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
-                    : 'bg-emerald-950/60 border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/60'
-                  : isLight
-                    ? 'bg-indigo-50 border-indigo-200 text-indigo-800 hover:bg-indigo-100'
-                    : 'bg-indigo-950/60 border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/60'
-              }`}
-              title={currentUser ? `מחובר: ${currentUser.email}` : 'סנכרון ענן בין מכשירים'}
-            >
-              <Cloud className={`w-3.5 h-3.5 ${cloudSyncStatus === 'syncing' ? 'animate-pulse text-indigo-500' : ''}`} />
-              <span className="hidden lg:inline">
-                {currentUser ? (cloudSyncStatus === 'synced' ? 'סנכרון פעיל ☁️' : 'מסנכרן...') : 'סנכרון'}
-              </span>
-            </button>
-
-            {/* Streak Pill */}
-            {currentStreak > 0 && (
-              <div className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-semibold border ${
-                isLight
-                  ? 'bg-amber-50 border-amber-200 text-amber-800'
-                  : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-              }`}>
-                <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                <span>{currentStreak}י</span>
+    <>
+      <header className={`sticky top-0 z-40 w-full backdrop-blur-xl transition-colors duration-200 border-b ${
+        isLight 
+          ? 'bg-white/90 border-slate-200 shadow-sm text-slate-900' 
+          : 'bg-slate-900/90 border-slate-800 text-slate-100'
+      }`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 gap-3">
+            
+            {/* Logo & Title */}
+            <div className="flex items-center gap-2.5 flex-shrink-0 cursor-pointer" onClick={() => setActiveTab('today')}>
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <BookOpen className="w-5 h-5 text-white" />
               </div>
-            )}
+              <div>
+                <h1 className={`font-extrabold text-base leading-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  מעקב אנדודונטיה
+                </h1>
+                <p className={`text-[10px] hidden sm:block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  הכנה להתמחות • 2026
+                </p>
+              </div>
+            </div>
 
-            {/* Progress Pill */}
-            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border ${
-              isLight
-                ? 'bg-indigo-50 border-indigo-200 text-indigo-800'
-                : 'bg-indigo-950/40 border-indigo-500/30 text-indigo-300'
+            {/* Desktop Nav Bar (LG+ screens) */}
+            <nav className={`hidden lg:flex items-center gap-1 p-1.5 rounded-2xl border transition-colors ${
+              isLight 
+                ? 'bg-slate-100/90 border-slate-200/80' 
+                : 'bg-slate-950/70 border-slate-800'
             }`}>
-              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" />
-              <span>{percent}%</span>
+              {/* Group 1: Core Schedule */}
+              <div className="flex items-center gap-1 px-1">
+                {coreNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                        isActive
+                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-bold'
+                          : isLight
+                            ? 'text-slate-700 hover:text-indigo-600 hover:bg-slate-200/70'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className={`w-px h-5 mx-0.5 ${isLight ? 'bg-slate-300' : 'bg-slate-800'}`}></div>
+
+              {/* Group 2: Active Learning & Clinical Tools */}
+              <div className="flex items-center gap-1 px-1">
+                {activeLearningItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                        isActive
+                          ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md font-bold'
+                          : isLight
+                            ? 'text-indigo-700 hover:text-indigo-900 hover:bg-indigo-50/80 font-bold'
+                            : 'text-cyan-300/90 hover:text-white hover:bg-slate-800/80'
+                      }`}
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${isLight ? 'text-indigo-600' : 'text-cyan-400'}`} />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className={`w-px h-5 mx-0.5 ${isLight ? 'bg-slate-300' : 'bg-slate-800'}`}></div>
+
+              {/* Group 3: Tracking & Admin */}
+              <div className="flex items-center gap-1 px-1">
+                {trackingItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                        isActive
+                          ? 'bg-indigo-600 text-white shadow-md font-bold'
+                          : isLight
+                            ? 'text-slate-700 hover:text-indigo-600 hover:bg-slate-200/70'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+
+            {/* Right Tools & User Info */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              
+              {/* Pomodoro Focus Timer Trigger */}
+              {onOpenFocusTimer && (
+                <button
+                  onClick={onOpenFocusTimer}
+                  className="px-2.5 py-1.5 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/60 border border-indigo-500/30 text-indigo-300 text-xs font-bold transition flex items-center gap-1"
+                  title="טיימר פומודורו לפוקוס"
+                >
+                  <Timer className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">פוקוס ⏱️</span>
+                </button>
+              )}
+
+              {/* Theme Switcher */}
+              {toggleTheme && (
+                <button
+                  onClick={toggleTheme}
+                  className={`p-2 rounded-xl border transition ${
+                    isLight 
+                      ? 'bg-slate-100 border-slate-200 text-amber-600 hover:bg-slate-200' 
+                      : 'bg-slate-800 border-slate-700 text-amber-400 hover:bg-slate-700'
+                  }`}
+                  title={isLight ? 'עבור למצב כהה (Dark)' : 'עבור למצב בהיר (Light)'}
+                >
+                  {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                </button>
+              )}
+
+              {/* Search Trigger */}
+              <button
+                onClick={openSearch}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition ${
+                  isLight
+                    ? 'bg-slate-100 hover:bg-slate-200/80 border-slate-200 text-slate-700'
+                    : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
+                }`}
+                title="חיפוש (Cmd+K)"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">חיפוש...</span>
+              </button>
+
+              {/* Cloud Sync Button */}
+              <button
+                onClick={openAuthModal}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition ${
+                  currentUser
+                    ? isLight
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                      : 'bg-emerald-950/60 border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/60'
+                    : isLight
+                      ? 'bg-indigo-50 border-indigo-200 text-indigo-800 hover:bg-indigo-100'
+                      : 'bg-indigo-950/60 border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/60'
+                }`}
+                title={currentUser ? `מחובר: ${currentUser.email}` : 'סנכרון ענן בין מכשירים'}
+              >
+                <Cloud className={`w-3.5 h-3.5 ${cloudSyncStatus === 'syncing' ? 'animate-pulse text-indigo-500' : ''}`} />
+                <span className="hidden sm:inline">
+                  {currentUser ? (cloudSyncStatus === 'synced' ? 'סנכרון פעיל' : 'מסנכרן...') : 'סנכרון'}
+                </span>
+              </button>
+
+              {/* Streak Badge */}
+              {currentStreak > 0 && (
+                <div className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border ${
+                  isLight
+                    ? 'bg-amber-50 border-amber-200 text-amber-800'
+                    : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                }`}>
+                  <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                  <span>{currentStreak}י</span>
+                </div>
+              )}
+
+              {/* Progress Badge */}
+              <div className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border ${
+                isLight
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-800'
+                  : 'bg-indigo-950/40 border-indigo-500/30 text-indigo-300'
+              }`}>
+                <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" />
+                <span>{percent}%</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </header>
+
+      {/* Sticky Mobile Bottom Navigation Dock (For mobile screens < lg) */}
+      <nav className={`lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-xl transition-all ${
+        isLight ? 'bg-white/95 border-slate-200 shadow-lg text-slate-900' : 'bg-slate-950/95 border-slate-800 text-white'
+      }`}>
+        <div className="grid grid-cols-5 h-16 items-center px-1">
+          
+          <button
+            onClick={() => setActiveTab('today')}
+            className={`flex flex-col items-center justify-center py-1 transition ${
+              activeTab === 'today' ? 'text-indigo-500 font-bold' : isLight ? 'text-slate-600' : 'text-slate-400'
+            }`}
+          >
+            <Calendar className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">היום</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('literature')}
+            className={`flex flex-col items-center justify-center py-1 transition ${
+              activeTab === 'literature' ? 'text-indigo-500 font-bold' : isLight ? 'text-slate-600' : 'text-slate-400'
+            }`}
+          >
+            <FileText className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">ספרות</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('quiz')}
+            className={`flex flex-col items-center justify-center py-1 transition ${
+              activeTab === 'quiz' ? 'text-indigo-500 font-bold' : isLight ? 'text-slate-600' : 'text-slate-400'
+            }`}
+          >
+            <Award className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">סימולטור</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('protocols')}
+            className={`flex flex-col items-center justify-center py-1 transition ${
+              activeTab === 'protocols' ? 'text-indigo-500 font-bold' : isLight ? 'text-slate-600' : 'text-slate-400'
+            }`}
+          >
+            <Stethoscope className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">פרוטוקולים</span>
+          </button>
+
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className={`flex flex-col items-center justify-center py-1 transition ${
+              isMobileMenuOpen ? 'text-indigo-500 font-bold' : isLight ? 'text-slate-600' : 'text-slate-400'
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">עוד ☰</span>
+          </button>
+
+        </div>
+      </nav>
+
+      {/* Mobile Drawer Overlay Sheet for "More ☰" */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm flex flex-col justify-end animate-fadeIn">
+          <div className={`p-6 rounded-t-3xl border-t space-y-4 max-h-[80vh] overflow-y-auto ${
+            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-white'
+          }`}>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-extrabold text-base flex items-center gap-2">
+                <span>תפריט כלים וניווט מהיר</span>
+              </h3>
+              <button 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-xs px-3 py-1 bg-slate-800 rounded-lg text-slate-300"
+              >
+                סגור ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {allNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-2 p-3 rounded-2xl border text-right transition ${
+                      isActive
+                        ? 'bg-indigo-600 text-white border-indigo-500 font-bold shadow-md'
+                        : isLight
+                          ? 'bg-slate-100 border-slate-200 text-slate-800'
+                          : 'bg-slate-800/80 border-slate-700 text-slate-200'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 shrink-0 text-indigo-400" />
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
-
-        {/* Mobile Navigation Scrollbar */}
-        <div className={`md:hidden flex items-center gap-1.5 py-2 border-t overflow-x-auto ${
-          isLight ? 'border-slate-200' : 'border-slate-800/80'
-        }`}>
-          {allNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition ${
-                  isActive
-                    ? 'bg-indigo-600 text-white font-bold shadow-sm'
-                    : isLight
-                      ? 'text-slate-700 bg-slate-100 border border-slate-200'
-                      : 'text-slate-300 bg-slate-800/50 border border-slate-700/50'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-      </div>
-    </header>
+      )}
+    </>
   );
 };
