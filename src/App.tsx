@@ -13,6 +13,7 @@ import { DashboardView } from './components/DashboardView';
 import { SettingsView } from './components/SettingsView';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { AuthModal } from './components/AuthModal';
+import { LoginGate } from './components/LoginGate';
 
 const data = rawData as EndoData;
 
@@ -20,11 +21,13 @@ export function App() {
   const [activeTab, setActiveTab] = useState<string>('today');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isGuestMode, setIsGuestMode] = useState<boolean>(false);
 
   const {
     userState,
     currentUser,
     cloudSyncStatus,
+    isSyncing,
     toggleLiteratureItem,
     toggleWeekChapter,
     toggleReviewFlag,
@@ -49,6 +52,19 @@ export function App() {
 
   const totalLiteratureCount = data.literature.length;
   const completedLiteratureCount = userState.completedItemIds.length;
+
+  // Gate Check: If user is not authenticated AND hasn't chosen guest mode -> Show LoginGate
+  if (!currentUser && !isGuestMode) {
+    return (
+      <LoginGate
+        onGoogleLogin={loginWithGoogle}
+        onEmailLogin={loginWithEmail}
+        onEmailRegister={registerWithEmail}
+        onContinueAsGuest={() => setIsGuestMode(true)}
+        isLoading={isSyncing}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white dir-rtl">
@@ -149,7 +165,10 @@ export function App() {
         loginWithGoogle={loginWithGoogle}
         loginWithEmail={loginWithEmail}
         registerWithEmail={registerWithEmail}
-        logout={logout}
+        logout={async () => {
+          await logout();
+          setIsGuestMode(false);
+        }}
       />
 
       {/* Footer */}
