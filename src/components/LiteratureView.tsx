@@ -12,7 +12,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import type { EndoData, UserState, LiteratureItem } from '../types';
-import { getArticleSummary, isHighYieldArticle } from '../utils/summaryHelper';
+import { isHighYieldArticle } from '../utils/summaryHelper';
+import { ArticleReaderModal } from './ArticleReaderModal';
 
 interface LiteratureViewProps {
   data: EndoData;
@@ -38,7 +39,9 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
 
   const [activeNoteModalId, setActiveNoteModalId] = useState<number | null>(null);
   const [tempNoteText, setTempNoteText] = useState<string>('');
-  const [expandedSummaryId, setExpandedSummaryId] = useState<number | null>(null);
+
+  // Reader Modal State
+  const [readerArticleIndex, setReaderArticleIndex] = useState<number | null>(null);
 
   // Extract unique categories
   const categories = useMemo(() => {
@@ -58,16 +61,25 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
         const inCitation = item.citation.toLowerCase().includes(q);
         const inCat = item.category?.toLowerCase().includes(q) || false;
         const inNote = (userState.notes[item.id] || '').toLowerCase().includes(q);
-        const inId = String(item.id) === q;
-        if (!inCitation && !inCat && !inNote && !inId) return false;
+        if (!inCitation && !inCat && !inNote) return false;
+      }
+
+      // High-Yield Only Filter
+      if (isHighYieldOnly && !isHighYieldArticle(item)) {
+        return false;
       }
 
       // Category
-      if (categoryFilter !== 'ALL' && item.category !== categoryFilter) return false;
+      if (categoryFilter !== 'ALL' && item.category !== categoryFilter) {
+        return false;
+      }
 
       // Phase
       if (phaseFilter === 'PHASE_1' && item.week === null) return false;
       if (phaseFilter === 'PHASE_2' && item.week !== null) return false;
+
+      // Type
+      if (typeFilter !== 'ALL' && item.type !== typeFilter) return false;
 
       // Status
       const isDone = userState.completedItemIds.includes(item.id);
@@ -76,15 +88,10 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
       if (statusFilter === 'UNREAD' && isDone) return false;
       if (statusFilter === 'REVIEW' && !isReview) return false;
 
-      // Type
-      if (typeFilter !== 'ALL' && item.type !== typeFilter) return false;
-      if (isHighYieldOnly && !isHighYieldArticle(item)) return false;
-
       return true;
     });
   }, [data.literature, searchQuery, categoryFilter, phaseFilter, statusFilter, typeFilter, isHighYieldOnly, userState]);
 
-  // Separate Phase 1 vs Phase 2 items
   const phase1Items = useMemo(() => filteredItems.filter(i => i.week !== null), [filteredItems]);
   const phase2Items = useMemo(() => filteredItems.filter(i => i.week === null), [filteredItems]);
 
@@ -100,43 +107,47 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
     }
   };
 
+  const handleOpenReader = (articleId: number) => {
+    const index = filteredItems.findIndex(a => a.id === articleId);
+    if (index !== -1) {
+      setReaderArticleIndex(index);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      
+      {/* Header Banner */}
       <div className="glass-card rounded-2xl p-6 border border-slate-700/60 bg-slate-900/60">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
               <FileText className="w-6 h-6 text-indigo-400" />
-              <span>ספרות חובה לבחינת המומחיות (266 פריטים)</span>
+              <span>מאגר ספרות חובה (266 מאמרים והנחיות)</span>
             </h2>
             <p className="text-slate-400 text-sm mt-1">
-              רשימת הספרות הרשמית: מאמרים קלאסיים, הנחיות קליניות ומסמכי עמדה
+              חיפוש חופשי, סינון לפי נושאים, סטטוס קריאה ומאמרי הליבה לבחינת המומחיות
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs bg-indigo-950 text-indigo-300 border border-indigo-500/30 font-semibold px-3 py-1.5 rounded-xl">
-              מציג {filteredItems.length} מתוך {data.literature.length}
-            </span>
+          <div className="text-left font-mono text-xs text-slate-400">
+            <div>נמצאו <strong className="text-white font-bold">{filteredItems.length}</strong> מתוך {data.literature.length}</div>
           </div>
         </div>
 
-        {/* Filter Toolbar */}
-        <div className="mt-6 pt-5 border-t border-slate-800 space-y-3">
-          {/* Row 1: Search Input */}
+        {/* Search & Filters */}
+        <div className="mt-5 space-y-3">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="חפש לפי שם מחבר, כותרת, journal, קטגוריה, הערה או מספר ID..."
-              className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pr-10 pl-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
+              placeholder="חפש לפי מחבר, שנה, כותרת, נושא או הערות אישיות..."
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pr-10 pl-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
             />
           </div>
 
-          {/* Row 2: Select Filters */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {/* Category */}
             <div>
@@ -147,23 +158,23 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
               >
                 <option value="ALL">כל הקטגוריות ({categories.length})</option>
-                {categories.map(c => (
-                  <option key={c} value={c}>{c}</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
             </div>
 
             {/* Phase */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-400 mb-1">שלב התוכנית:</label>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1">שלב לימוד:</label>
               <select
                 value={phaseFilter}
                 onChange={(e) => setPhaseFilter(e.target.value as any)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
               >
-                <option value="ALL">הכל (12 שבועות + להתמחות)</option>
-                <option value="PHASE_1">שלב 1: 12 השבועות</option>
-                <option value="PHASE_2">שלב 2: במהלך ההתמחות (week=null)</option>
+                <option value="ALL">כל השלבים (1+2)</option>
+                <option value="PHASE_1">שלב 1 (12 השבועות)</option>
+                <option value="PHASE_2">שלב 2 (התמחות)</option>
               </select>
             </div>
 
@@ -175,7 +186,7 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
                 onChange={(e) => setStatusFilter(e.target.value as any)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
               >
-                <option value="ALL">כל הסטטוסים</option>
+                <option value="ALL">הכל</option>
                 <option value="UNREAD">טרם נקרא</option>
                 <option value="READ">נקרא (הושלם)</option>
                 <option value="REVIEW">מתוייג לחזרה 🔖</option>
@@ -210,12 +221,6 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
               <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
               <span>🔥 מאמרי ליבה חובה לבחינה (High-Yield Top Papers)</span>
             </button>
-
-            {isHighYieldOnly && (
-              <span className="text-xs text-amber-300/80 font-medium">
-                מציג רק מאמרים והנחיות קלאסיות בעלות משקל מירבי בבחינת המומחיות
-              </span>
-            )}
           </div>
         </div>
       </div>
@@ -231,42 +236,30 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
           </div>
 
           <div className="space-y-2.5">
-            {phase1Items.map((item) => renderLiteratureRow(item, userState, toggleLiteratureItem, toggleReviewFlag, handleOpenNote, expandedSummaryId, setExpandedSummaryId))}
+            {phase1Items.map((item) => renderLiteratureRow(item, userState, toggleLiteratureItem, toggleReviewFlag, handleOpenNote, handleOpenReader))}
           </div>
         </div>
       )}
 
-      {/* Phase 2 Literature Section (week: null) */}
+      {/* Phase 2 Literature Section */}
       {phase2Items.length > 0 && (
-        <div className="space-y-3 pt-4">
-          <div className="flex items-center justify-between px-1 border-t border-slate-800 pt-6">
-            <div>
-              <h3 className="text-base font-bold text-cyan-300 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-cyan-400" />
-                <span>ספרות להתמחות עצמה ({phase2Items.length})</span>
-              </h3>
-              <p className="text-xs text-slate-400">פריטים אלה אינם חלק מספרינט 12 השבועות. ניתן לקרוא בקצב חופשי במהלך ההתמחות.</p>
-            </div>
+        <div className="space-y-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Clock className="w-4 h-4 text-cyan-400" />
+              <span>ספרות שלב 2 — במהלך ההתמחות ({phase2Items.length})</span>
+            </h3>
           </div>
 
           <div className="space-y-2.5">
-            {phase2Items.map((item) => renderLiteratureRow(item, userState, toggleLiteratureItem, toggleReviewFlag, handleOpenNote, expandedSummaryId, setExpandedSummaryId))}
+            {phase2Items.map((item) => renderLiteratureRow(item, userState, toggleLiteratureItem, toggleReviewFlag, handleOpenNote, handleOpenReader))}
           </div>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {filteredItems.length === 0 && (
-        <div className="glass-card rounded-2xl p-10 text-center text-slate-400 space-y-2">
-          <FileText className="w-10 h-10 mx-auto text-slate-600" />
-          <h4 className="font-bold text-white">לא נמצאו פריטים תואמים לסינון</h4>
-          <p className="text-xs">נסה לשנות את הסינון או את מילת החיפוש</p>
         </div>
       )}
 
       {/* Note Modal */}
       {activeNoteModalId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="glass-card bg-slate-900 border-slate-700 rounded-2xl p-6 max-w-lg w-full space-y-4 text-right">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-amber-400" />
@@ -276,7 +269,7 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
               rows={4}
               value={tempNoteText}
               onChange={(e) => setTempNoteText(e.target.value)}
-              placeholder="רשום דגשים חשובים, ממצא מרכזי, או נקודות לבחינה..."
+              placeholder="רשום דגשים חשובים..."
               className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-indigo-500"
             />
             <div className="flex justify-end gap-2">
@@ -297,6 +290,21 @@ export const LiteratureView: React.FC<LiteratureViewProps> = ({
         </div>
       )}
 
+      {/* Sequential Reader Modal */}
+      {readerArticleIndex !== null && filteredItems[readerArticleIndex] && (
+        <ArticleReaderModal
+          item={filteredItems[readerArticleIndex]}
+          allArticles={filteredItems}
+          currentIndex={readerArticleIndex}
+          onNavigate={(newIndex) => setReaderArticleIndex(newIndex)}
+          onClose={() => setReaderArticleIndex(null)}
+          userState={userState}
+          toggleLiteratureItem={toggleLiteratureItem}
+          toggleReviewFlag={toggleReviewFlag}
+          updateNote={updateNote}
+        />
+      )}
+
     </div>
   );
 };
@@ -307,21 +315,18 @@ function renderLiteratureRow(
   toggleLiteratureItem: (id: number) => void,
   toggleReviewFlag: (id: number) => void,
   handleOpenNote: (id: number) => void,
-  expandedSummaryId: number | null,
-  setExpandedSummaryId: React.Dispatch<React.SetStateAction<number | null>>
+  handleOpenReader: (id: number) => void
 ) {
   const isDone = userState.completedItemIds.includes(item.id);
   const isReviewFlagged = userState.reviewItemIds.includes(item.id);
   const hasNote = Boolean(userState.notes[item.id]);
-  const isSummaryExpanded = expandedSummaryId === item.id;
-  const summary = getArticleSummary(item);
 
   return (
     <div
       key={item.id}
       className={`glass-card rounded-2xl p-4 border transition-all ${
         isDone
-          ? 'bg-slate-900/30 border-slate-800 opacity-60'
+          ? 'bg-slate-900/30 border-slate-800 opacity-70'
           : 'bg-slate-800/50 border-slate-700/60 hover:border-slate-600'
       }`}
     >
@@ -330,6 +335,7 @@ function renderLiteratureRow(
         <button
           onClick={() => toggleLiteratureItem(item.id)}
           className="mt-1 shrink-0 text-slate-400 hover:text-indigo-400 transition"
+          title={isDone ? 'בטל סימון כנקרא' : 'סמן כנקרא'}
         >
           {isDone ? (
             <CheckCircle2 className="w-5 h-5 text-emerald-400 fill-emerald-400/20" />
@@ -351,7 +357,7 @@ function renderLiteratureRow(
               </span>
             ) : (
               <span className="text-[11px] font-semibold text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/30">
-                התמחות (ללא שבוע)
+                התמחות
               </span>
             )}
 
@@ -382,17 +388,13 @@ function renderLiteratureRow(
           {/* Action Tools Toolbar */}
           <div className="flex flex-wrap items-center gap-2 pt-2 text-xs">
             
-            {/* Executive Summary Button */}
+            {/* Open Sequential Reader Button */}
             <button
-              onClick={() => setExpandedSummaryId(isSummaryExpanded ? null : item.id)}
-              className={`px-2.5 py-1 rounded-lg border font-bold transition flex items-center gap-1 ${
-                isSummaryExpanded
-                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-md'
-                  : 'bg-indigo-950/60 border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/60'
-              }`}
+              onClick={() => handleOpenReader(item.id)}
+              className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold border border-indigo-500 shadow-md transition flex items-center gap-1.5"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>תקציר מנהלים ⚡</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>קרא מאמר ותקציר ⚡</span>
             </button>
 
             {/* Direct Link */}
@@ -403,7 +405,7 @@ function renderLiteratureRow(
                 rel="noopener noreferrer"
                 className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 font-medium transition flex items-center gap-1"
               >
-                <span>קרא מאמר</span>
+                <span>PubMed</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             )}
@@ -418,50 +420,18 @@ function renderLiteratureRow(
               }`}
             >
               <Bookmark className="w-3.5 h-3.5" />
-              <span>{isReviewFlagged ? 'מסומן לחזרה' : 'לחזור על זה'}</span>
+              <span>{isReviewFlagged ? 'מסומן לעיון' : 'סמן לעיון'}</span>
             </button>
 
-            {/* Note */}
+            {/* Add / Edit Note */}
             <button
               onClick={() => handleOpenNote(item.id)}
-              className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1 ${
-                hasNote
-                  ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 font-bold'
-                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
-              }`}
+              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-medium transition flex items-center gap-1"
             >
-              <MessageSquare className="w-3.5 h-3.5" />
+              <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
               <span>{hasNote ? 'ערוך הערה' : 'הוסף הערה'}</span>
             </button>
-
           </div>
-
-          {/* Expanded Executive Summary Drawer */}
-          {isSummaryExpanded && (
-            <div className="mt-3 p-3.5 rounded-xl bg-slate-950/90 border border-indigo-500/40 space-y-2.5 animate-fadeIn text-xs text-right">
-              <div className="font-extrabold text-indigo-300 flex items-center gap-1.5 border-b border-slate-800 pb-1.5">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>השורה התחתונה לבחינת המומחיות:</span>
-              </div>
-              <p className="text-slate-200 font-medium leading-relaxed">
-                {summary.bottomLine}
-              </p>
-              
-              <div className="space-y-1">
-                <div className="font-bold text-slate-400 text-[11px]">3 נקודות מפתח שחובה לזכור:</div>
-                <ul className="list-disc list-inside text-slate-300 space-y-1 pr-1">
-                  {summary.keyPoints.map((pt, idx) => (
-                    <li key={idx}>{pt}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="pt-1 text-[11px] text-emerald-300 font-semibold flex items-center gap-1">
-                <span>💡 דגש קליני:</span>
-                <span>{summary.clinicalTakeaway}</span>
-              </div>
-            </div>
-          )}
 
         </div>
       </div>

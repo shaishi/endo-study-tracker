@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   CheckCircle2, 
   Circle, 
@@ -8,10 +8,12 @@ import {
   ExternalLink, 
   Bookmark, 
   MessageSquare,
-  Sparkles
+  Sparkles,
+  BarChart2
 } from 'lucide-react';
 import type { EndoData, UserState, LiteratureItem } from '../types';
-import { getArticleSummary, isHighYieldArticle } from '../utils/summaryHelper';
+import { isHighYieldArticle } from '../utils/summaryHelper';
+import { ArticleReaderModal } from './ArticleReaderModal';
 
 interface WeeksViewProps {
   data: EndoData;
@@ -38,11 +40,34 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
 
   const [activeNoteModalId, setActiveNoteModalId] = useState<number | null>(null);
   const [tempNoteText, setTempNoteText] = useState<string>('');
-  const [expandedSummaryId, setExpandedSummaryId] = useState<number | null>(null);
   const [isHighYieldOnly, setIsHighYieldOnly] = useState<boolean>(false);
+  const [showWorkloadAudit, setShowWorkloadAudit] = useState<boolean>(false);
 
-  const litMap = new Map<number, LiteratureItem>();
-  data.literature.forEach(item => litMap.set(item.id, item));
+  // Article Reader Modal state
+  const [readerArticleIndex, setReaderArticleIndex] = useState<number | null>(null);
+
+  const litMap = useMemo(() => {
+    const map = new Map<number, LiteratureItem>();
+    data.literature.forEach(item => map.set(item.id, item));
+    return map;
+  }, [data.literature]);
+
+  // Flattened list of all curriculum articles in sequential order (Weeks 1 to 12)
+  const allCurriculumArticles = useMemo(() => {
+    const list: LiteratureItem[] = [];
+    const sortedWeeks = [...data.weeks].sort((a, b) => a.week - b.week);
+    for (const w of sortedWeeks) {
+      for (const artId of w.article_ids) {
+        const item = litMap.get(artId);
+        if (item) {
+          if (!isHighYieldOnly || isHighYieldArticle(item)) {
+            list.push(item);
+          }
+        }
+      }
+    }
+    return list;
+  }, [data.weeks, litMap, isHighYieldOnly]);
 
   const toggleWeekExpand = (weekNum: number) => {
     setExpandedWeeks(prev => ({
@@ -63,22 +88,41 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
     }
   };
 
+  const handleOpenReader = (articleId: number) => {
+    const index = allCurriculumArticles.findIndex(a => a.id === articleId);
+    if (index !== -1) {
+      setReaderArticleIndex(index);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      
       {/* Header */}
       <div className="glass-card rounded-2xl p-6 border border-slate-700/60 bg-slate-900/60">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
               <BookOpen className="w-6 h-6 text-indigo-400" />
-              <span>תוכנית 12 השבועות (ספרינט הכנה)</span>
+              <span>תוכנית 12 השבועות (ספרינט הכנה מובנה)</span>
             </h2>
             <p className="text-slate-400 text-sm mt-1">
               פריסת הלימוד לפי שבועות: פרקים בספרים, מאמרים קלאסיים והנחיות קליניות
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            
+            {/* Workload Audit Toggle */}
+            <button
+              onClick={() => setShowWorkloadAudit(!showWorkloadAudit)}
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-cyan-300 border border-slate-700 transition flex items-center gap-1.5"
+            >
+              <BarChart2 className="w-3.5 h-3.5 text-cyan-400" />
+              <span>הערכת עומס לוגית 📊</span>
+            </button>
+
+            {/* High-Yield Filter */}
             <button
               onClick={() => setIsHighYieldOnly(!isHighYieldOnly)}
               className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
@@ -109,6 +153,40 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Workload Evaluation Audit Widget */}
+        {showWorkloadAudit && (
+          <div className="mt-5 p-5 rounded-2xl bg-slate-950 border border-cyan-500/30 space-y-3 animate-fadeIn text-xs sm:text-sm">
+            <div className="flex items-center gap-2 font-bold text-cyan-300">
+              <BarChart2 className="w-4 h-4" />
+              <span>ניתוח והערכת עומס הלימודים בתוכנית (Logical Workload Audit):</span>
+            </div>
+            
+            <p className="text-slate-300 leading-relaxed">
+              התוכנית מחולקת באופן לוגי ומאוזן ל-<strong>12 שבועות ספרינט</strong>. 
+              בכל שבוע ישנו <strong>פרק ספר לימוד 1 מרכזי + 3 עד 7 מאמרים קלאסיים</strong> (ממוצע של כ-<strong>4 עד 8 יחידות בשבוע</strong>).
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-xs">
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                <div className="text-slate-400 text-[10px]">סה"כ שבועות</div>
+                <div className="text-white font-bold text-sm">12 שבועות</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                <div className="text-slate-400 text-[10px]">סה"כ יחידות ליבה</div>
+                <div className="text-cyan-400 font-bold text-sm">69 יחידות</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                <div className="text-slate-400 text-[10px]">קצב קריאה יומי מומלץ</div>
+                <div className="text-emerald-400 font-bold text-sm">1 יחידה / יום</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                <div className="text-slate-400 text-[10px]">סטטוס עומס</div>
+                <div className="text-amber-400 font-bold text-sm">אופטימלי ומאוזן ✓</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Week Cards List */}
@@ -224,22 +302,23 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
                       const isDone = userState.completedItemIds.includes(item.id);
                       const isReviewFlagged = userState.reviewItemIds.includes(item.id);
                       const hasNote = Boolean(userState.notes[item.id]);
-                      const isSummaryExpanded = expandedSummaryId === item.id;
-                      const summary = getArticleSummary(item);
 
                       return (
                         <div
                           key={item.id}
                           className={`p-3 sm:p-4 rounded-xl border transition ${
                             isDone
-                              ? 'bg-slate-900/30 border-slate-800 opacity-60'
+                              ? 'bg-slate-900/30 border-slate-800 opacity-70'
                               : 'bg-slate-800/40 border-slate-700/50 hover:bg-slate-800/70'
                           }`}
                         >
                           <div className="flex items-start gap-3">
+                            
+                            {/* Synced Checkbox Toggle Button */}
                             <button
                               onClick={() => toggleLiteratureItem(item.id)}
                               className="mt-1 shrink-0 text-slate-400 hover:text-indigo-400 transition"
+                              title={isDone ? 'בטל סימון כנקרא' : 'סמן כנקרא'}
                             >
                               {isDone ? (
                                 <CheckCircle2 className="w-5 h-5 text-emerald-400 fill-emerald-400/20" />
@@ -276,17 +355,13 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
                               {/* Action Tools Toolbar */}
                               <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
                                 
-                                {/* Executive Summary Button */}
+                                {/* Open Reader & Summary Button */}
                                 <button
-                                  onClick={() => setExpandedSummaryId(isSummaryExpanded ? null : item.id)}
-                                  className={`px-2.5 py-1 rounded-lg border font-bold transition flex items-center gap-1 ${
-                                    isSummaryExpanded
-                                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-md'
-                                      : 'bg-indigo-950/60 border-indigo-500/30 text-indigo-300 hover:bg-indigo-900/60'
-                                  }`}
+                                  onClick={() => handleOpenReader(item.id)}
+                                  className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold border border-indigo-500 shadow-md transition flex items-center gap-1.5"
                                 >
-                                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                                  <span>תקציר מנהלים ⚡</span>
+                                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                                  <span>קרא מאמר ותקציר ⚡</span>
                                 </button>
 
                                 {/* Direct Link */}
@@ -297,65 +372,33 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
                                     rel="noopener noreferrer"
                                     className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 font-medium transition flex items-center gap-1"
                                   >
-                                    <span>קרא מאמר</span>
+                                    <span>PubMed</span>
                                     <ExternalLink className="w-3 h-3" />
                                   </a>
                                 )}
 
-                                {/* Review Flag */}
+                                {/* Flag for Review Toggle */}
                                 <button
                                   onClick={() => toggleReviewFlag(item.id)}
                                   className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1 ${
                                     isReviewFlagged
-                                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
-                                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 font-bold'
+                                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
                                   }`}
                                 >
-                                  <Bookmark className="w-3.5 h-3.5" />
-                                  <span>{isReviewFlagged ? 'מסומן לחזרה' : 'לחזור על זה'}</span>
+                                  <Bookmark className="w-3 h-3 text-amber-400" />
+                                  <span>{isReviewFlagged ? 'מסומן לעיון' : 'סמן לעיון'}</span>
                                 </button>
 
-                                {/* Note */}
+                                {/* Add / Edit Note */}
                                 <button
                                   onClick={() => handleOpenNote(item.id)}
-                                  className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1 ${
-                                    hasNote
-                                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 font-bold'
-                                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
-                                  }`}
+                                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-medium transition flex items-center gap-1"
                                 >
-                                  <MessageSquare className="w-3.5 h-3.5" />
+                                  <MessageSquare className="w-3 h-3 text-cyan-400" />
                                   <span>{hasNote ? 'ערוך הערה' : 'הוסף הערה'}</span>
                                 </button>
-
                               </div>
-
-                              {/* Expanded Executive Summary Drawer */}
-                              {isSummaryExpanded && (
-                                <div className="mt-3 p-3.5 rounded-xl bg-slate-950/90 border border-indigo-500/40 space-y-2.5 animate-fadeIn text-xs text-right">
-                                  <div className="font-extrabold text-indigo-300 flex items-center gap-1.5 border-b border-slate-800 pb-1.5">
-                                    <Sparkles className="w-4 h-4 text-amber-400" />
-                                    <span>השורה התחתונה לבחינת המומחיות:</span>
-                                  </div>
-                                  <p className="text-slate-200 font-medium leading-relaxed">
-                                    {summary.bottomLine}
-                                  </p>
-                                  
-                                  <div className="space-y-1">
-                                    <div className="font-bold text-slate-400 text-[11px]">3 נקודות מפתח שחובה לזכור:</div>
-                                    <ul className="list-disc list-inside text-slate-300 space-y-1 pr-1">
-                                      {summary.keyPoints.map((pt, idx) => (
-                                        <li key={idx}>{pt}</li>
-                                      ))}
-                                    </ul>
-                                  </div>
-
-                                  <div className="pt-1 text-[11px] text-emerald-300 font-semibold flex items-center gap-1">
-                                    <span>💡 דגש קליני:</span>
-                                    <span>{summary.clinicalTakeaway}</span>
-                                  </div>
-                                </div>
-                              )}
 
                             </div>
                           </div>
@@ -363,6 +406,7 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
                       );
                     })}
                   </div>
+
                 </div>
               )}
             </div>
@@ -372,35 +416,49 @@ export const WeeksView: React.FC<WeeksViewProps> = ({
 
       {/* Note Modal */}
       {activeNoteModalId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="glass-card bg-slate-900 border-slate-700 rounded-2xl p-6 max-w-lg w-full space-y-4 text-right">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md rounded-2xl p-6 border border-slate-700 bg-slate-900 space-y-4">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-amber-400" />
-              <span>הערה אישית לפריט #{activeNoteModalId}</span>
+              <span>הערה אישית למאמר</span>
             </h3>
             <textarea
-              rows={4}
               value={tempNoteText}
               onChange={(e) => setTempNoteText(e.target.value)}
-              placeholder="רשום דגשים חשובים..."
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-indigo-500"
+              placeholder="רשום דגשים אישיים..."
+              className="w-full h-32 p-3 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
             />
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setActiveNoteModalId(null)}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-semibold"
               >
                 ביטול
               </button>
               <button
                 onClick={handleSaveNote}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white"
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs text-white font-bold"
               >
                 שמור הערה
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Article Reader Sequential Navigation Modal */}
+      {readerArticleIndex !== null && allCurriculumArticles[readerArticleIndex] && (
+        <ArticleReaderModal
+          item={allCurriculumArticles[readerArticleIndex]}
+          allArticles={allCurriculumArticles}
+          currentIndex={readerArticleIndex}
+          onNavigate={(newIndex) => setReaderArticleIndex(newIndex)}
+          onClose={() => setReaderArticleIndex(null)}
+          userState={userState}
+          toggleLiteratureItem={toggleLiteratureItem}
+          toggleReviewFlag={toggleReviewFlag}
+          updateNote={updateNote}
+        />
       )}
 
     </div>

@@ -1,18 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   CheckCircle2, 
   Circle, 
+  Calendar, 
+  AlertTriangle, 
   ExternalLink, 
   Bookmark, 
   MessageSquare, 
-  AlertTriangle, 
-  Calendar, 
-  Sparkles, 
+  Sparkles,
   ArrowLeft
 } from 'lucide-react';
-import type { ScheduleCalculation, UserState } from '../types';
-import { formatHebrewDate } from '../utils/adaptiveEngine';
+import type { UserState, ScheduleCalculation, LiteratureItem } from '../types';
 import { exportCalendarICS } from '../utils/calendarExporter';
+import { ArticleReaderModal } from './ArticleReaderModal';
 
 interface TodayViewProps {
   schedule: ScheduleCalculation;
@@ -37,10 +37,18 @@ export const TodayView: React.FC<TodayViewProps> = ({
 }) => {
   const [activeNoteModalId, setActiveNoteModalId] = useState<number | null>(null);
   const [tempNoteText, setTempNoteText] = useState<string>('');
-  const [isExtendingDate, setIsExtendingDate] = useState(false);
-  const [newTargetDateInput, setNewTargetDateInput] = useState(schedule.effectiveTargetDate);
+  const [isExtendingDate, setIsExtendingDate] = useState<boolean>(false);
+  const [newTargetDate, setNewTargetDate] = useState<string>(schedule.effectiveTargetDate);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Article Reader Modal state
+  const [readerArticleIndex, setReaderArticleIndex] = useState<number | null>(null);
+
+  // Extract all literature items from today's units for sequential reader
+  const todayArticles = useMemo(() => {
+    return schedule.todaysUnits
+      .map(u => u.itemRef)
+      .filter((item): item is LiteratureItem => item !== undefined);
+  }, [schedule.todaysUnits]);
 
   const handleOpenNote = (id: number) => {
     setActiveNoteModalId(id);
@@ -54,114 +62,91 @@ export const TodayView: React.FC<TodayViewProps> = ({
     }
   };
 
-  const handleExtendingTargetDate = () => {
-    if (newTargetDateInput) {
-      setCustomTargetDate(newTargetDateInput);
+  const handleOpenReader = (articleId: number) => {
+    const index = todayArticles.findIndex(a => a.id === articleId);
+    if (index !== -1) {
+      setReaderArticleIndex(index);
+    }
+  };
+
+  const handleSaveExtendedDate = () => {
+    if (newTargetDate) {
+      setCustomTargetDate(newTargetDate);
       setIsExtendingDate(false);
     }
   };
 
   return (
     <div className="space-y-6">
-
-      {/* Hero Countdown Header */}
-      <div className="glass-card rounded-2xl p-6 relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/20">
-        <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -right-10 -top-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-1">
-              <Calendar className="w-4 h-4" />
-              <span>{formatHebrewDate(todayStr)}</span>
+      
+      {/* Top Hero Banner */}
+      <div className="glass-card rounded-3xl p-6 sm:p-8 border border-indigo-500/30 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 shadow-xl">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold">
+              <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+              <span>תגאנון אדפטיבי יומי (Adaptive Daily Schedule)</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-              משימות הלימוד להיום
+
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+              משימות הלימוד להיום ({new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })})
             </h2>
-            <p className="text-slate-400 text-sm mt-1">
-              מבוסס על האלגוריתם האדפטיבי — מחושב מחדש לפי קצב ההתקדמות שלך בפועל
+
+            <p className="text-slate-300 text-xs sm:text-sm max-w-xl leading-relaxed">
+              האלגוריתם מחשב אוטומטית את קצב הלימוד היומי הנדרש להשלמת 12 השבועות עד {schedule.effectiveTargetDate}.
             </p>
           </div>
 
-          {/* Stats Badges & Quick Cram Access */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Days Left Card */}
-            <div className="bg-slate-800/80 border border-indigo-500/30 rounded-xl px-4 py-2.5 text-center">
-              <div className="text-xs text-slate-400">נותרו לסיום שלב 1</div>
-              <div className="text-xl font-black text-indigo-400 mt-0.5">
-                {schedule.remainingDaysCount} ימים
-              </div>
+          {/* Quick Metrics */}
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-center flex-1 md:w-28">
+              <div className="text-slate-400 text-[10px] font-bold">קצב יומי</div>
+              <div className="text-2xl font-black text-indigo-400 mt-0.5">{schedule.dailyPace}</div>
+              <div className="text-[10px] text-slate-400">יחידות/יום</div>
             </div>
 
-            {/* Daily Pace Card */}
-            <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl px-4 py-2.5 text-center">
-              <div className="text-xs text-slate-400">קצב יומי מומלץ</div>
-              <div className="text-xl font-black text-cyan-400 mt-0.5">
-                {schedule.dailyPace} יחידות/יום
-              </div>
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-center flex-1 md:w-28">
+              <div className="text-slate-400 text-[10px] font-bold">יחידות שנותרו</div>
+              <div className="text-2xl font-black text-amber-400 mt-0.5">{schedule.remainingUnits}</div>
+              <div className="text-[10px] text-slate-400">מתוך {schedule.totalUnits}</div>
             </div>
 
-            {/* Quick Cram Notebook Button */}
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-center flex-1 md:w-28">
+              <div className="text-slate-400 text-[10px] font-bold">ימים ללימוד</div>
+              <div className="text-2xl font-black text-emerald-400 mt-0.5">{schedule.remainingDaysCount}</div>
+              <div className="text-[10px] text-slate-400">ימים פעילים</div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Quick Tools Row */}
+        <div className="mt-6 pt-5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => setActiveTab('cram')}
-              className="px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold transition flex items-center gap-1.5"
-              title="פתח מחברת סיכומים לבחינה"
+              onClick={() => setActiveTab('weeks')}
+              className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition shadow-md whitespace-nowrap"
             >
-              <span>מחברת סיכומים לבחינה 📝</span>
+              תוכנית 12 השבועות 📅
+            </button>
+            <button
+              onClick={() => setActiveTab('flashcards')}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700 whitespace-nowrap"
+            >
+              כרטיסיות זהב 📇
+            </button>
+            <button
+              onClick={() => setActiveTab('quiz')}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700 whitespace-nowrap"
+            >
+              סימולטור שאלות ⏱️
             </button>
           </div>
-        </div>
 
-        {/* Phase 1 Completion Progress Bar */}
-        <div className="mt-6 pt-5 border-t border-slate-800/80">
-          <div className="flex justify-between items-center text-xs font-medium mb-2">
-            <span className="text-slate-300">התקדמות כללית בשלבי 12 השבועות</span>
-            <span className="text-indigo-400 font-bold">
-              {schedule.completedUnits} מתוך {schedule.totalUnits} יחידות ({Math.round((schedule.completedUnits / (schedule.totalUnits || 1)) * 100)}%)
-            </span>
-          </div>
-          <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
-            <div 
-              className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full transition-all duration-500 shadow-sm shadow-indigo-500/50"
-              style={{ width: `${Math.min(100, Math.round((schedule.completedUnits / (schedule.totalUnits || 1)) * 100))}%` }}
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Daily Active Recall Warmup Card */}
-      <div className="glass-card rounded-2xl p-5 border border-indigo-500/30 bg-gradient-to-r from-indigo-950/60 via-slate-900 to-slate-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-white shrink-0 shadow-md">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="font-extrabold text-white text-sm sm:text-base flex items-center gap-2">
-              <span>חימום יומי אדפטיבי (Daily Active Recall)</span>
-              <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">מומלץ 3 דקות</span>
-            </h4>
-            <p className="text-xs text-slate-300 mt-0.5">
-              חזור על שאלות מפתח קלאסיות מכרטיסיות הזהב או תרגל שאלות בחינה בסימולטור לפני תחילת משימות היום!
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <button
-            onClick={() => setActiveTab('flashcards')}
-            className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition shadow-md whitespace-nowrap"
-          >
-            כרטיסיות זהב 📇
-          </button>
-          <button
-            onClick={() => setActiveTab('quiz')}
-            className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700 whitespace-nowrap"
-          >
-            סימולטור שאלות ⏱️
-          </button>
           <button
             onClick={() => exportCalendarICS(schedule)}
-            className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-300 font-bold text-xs transition border border-emerald-500/30 whitespace-nowrap flex items-center justify-center gap-1"
+            className="px-3.5 py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-300 font-bold text-xs transition border border-emerald-500/30 whitespace-nowrap flex items-center justify-center gap-1.5"
             title="ייצא לוח זמנים ליומן Google Calendar / Apple iCal"
           >
             <Calendar className="w-3.5 h-3.5 text-emerald-400" />
@@ -178,9 +163,9 @@ export const TodayView: React.FC<TodayViewProps> = ({
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="font-bold text-amber-100 text-base">שים לב — קצב יומי גבוה מהרגיל ({schedule.dailyPace} יחידות ביום)</h4>
+              <h4 className="font-bold text-amber-100 text-base">שים לב — קצב יומי גבוה ממומלץ ({schedule.dailyPace} יחידות ביום)</h4>
               <p className="text-xs text-amber-200/80 mt-1 leading-relaxed">
-                בקצב הנוכחי צריך ללמוד {schedule.dailyPace} יחידות ביום כדי לסיים עד {schedule.effectiveTargetDate} — זה כנראה עומס גבוה. אפשר להאריך את תאריך היעד או להמשיך בקצב שלך ולהשלים פערים בהתמחות.
+                בקצב הנוכחי נדרשות {schedule.dailyPace} יחידות ביום. מומלץ להאריך את תאריך היעד או להמשיך בקצב נוח של 1-2 יחידות ביום.
               </p>
             </div>
           </div>
@@ -190,6 +175,41 @@ export const TodayView: React.FC<TodayViewProps> = ({
           >
             הארך תאריך יעד
           </button>
+        </div>
+      )}
+
+      {/* Extend Target Date Modal */}
+      {isExtendingDate && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md rounded-2xl p-6 border border-slate-700 bg-slate-900 space-y-4 text-right">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-indigo-400" />
+              <span>התאמת תאריך סיום ל-12 השבועות</span>
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              בחר תאריך חדש ליעד סיום 12 השבועות. האלגוריתם יחשב מחדש את העומס היומי:
+            </p>
+            <input
+              type="date"
+              value={newTargetDate}
+              onChange={(e) => setNewTargetDate(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-indigo-500 font-mono"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setIsExtendingDate(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-semibold"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={handleSaveExtendedDate}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs text-white font-bold"
+              >
+                עדכן תאריך
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -238,14 +258,15 @@ export const TodayView: React.FC<TodayViewProps> = ({
               return (
                 <div
                   key={unit.id}
-                  className={`glass-card glass-card-hover rounded-2xl p-4 sm:p-5 border transition-all ${
+                  className={`glass-card rounded-2xl p-4 sm:p-5 border transition-all ${
                     unit.isCompleted
-                      ? 'bg-slate-900/40 border-slate-800 opacity-60'
+                      ? 'bg-slate-900/40 border-slate-800 opacity-70'
                       : 'border-slate-700/60 bg-slate-800/60'
                   }`}
                 >
                   <div className="flex items-start gap-3 sm:gap-4">
-                    {/* Checkbox */}
+                    
+                    {/* Synced Checkbox */}
                     <button
                       onClick={() => {
                         if (isChapter && unit.weekRef) {
@@ -255,7 +276,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                         }
                       }}
                       className="mt-1 shrink-0 text-slate-400 hover:text-indigo-400 transition"
-                      title={unit.isCompleted ? 'סמן כלא הושלם' : 'סמן כהושלם'}
+                      title={unit.isCompleted ? 'בטל סימון כהושלם' : 'סמן כהושלם'}
                     >
                       {unit.isCompleted ? (
                         <CheckCircle2 className="w-6 h-6 text-emerald-400 fill-emerald-400/20" />
@@ -289,18 +310,6 @@ export const TodayView: React.FC<TodayViewProps> = ({
                             {item.category}
                           </span>
                         )}
-
-                        {/* Direct PMID vs Search link tag */}
-                        {item?.link_type === 'direct_pmid' && (
-                          <span className="text-[10px] text-emerald-400 bg-emerald-950/50 border border-emerald-500/20 px-1.5 py-0.5 rounded" title="קישור ישיר ל-PubMed">
-                            PMID {item.pmid}
-                          </span>
-                        )}
-                        {item?.link_type?.includes('fallback') && (
-                          <span className="text-[10px] text-amber-400 bg-amber-950/50 border border-amber-500/20 px-1.5 py-0.5 rounded" title="קישור חיפוש אוטומטי">
-                            ⚠ חיפוש PubMed
-                          </span>
-                        )}
                       </div>
 
                       {/* Main Title / Citation */}
@@ -324,52 +333,58 @@ export const TodayView: React.FC<TodayViewProps> = ({
                           <span>{userState.notes[item.id]}</span>
                         </div>
                       )}
-                    </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-1 shrink-0 self-center">
-                      {/* Review Flag */}
+                      {/* Action Toolbar */}
                       {item && (
-                        <button
-                          onClick={() => toggleReviewFlag(item.id)}
-                          className={`p-2 rounded-xl border transition ${
-                            isReviewFlagged
-                              ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                              : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-slate-200'
-                          }`}
-                          title={isReviewFlagged ? 'הסר דגל חזרה' : 'סמן לחזרה לקראת הבחינה'}
-                        >
-                          <Bookmark className={`w-4 h-4 ${isReviewFlagged ? 'fill-amber-400' : ''}`} />
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2 pt-2 text-xs">
+                          
+                          {/* Open Sequential Reader Button */}
+                          <button
+                            onClick={() => handleOpenReader(item.id)}
+                            className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold border border-indigo-500 shadow-md transition flex items-center gap-1.5"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                            <span>קרא מאמר ותקציר ⚡</span>
+                          </button>
+
+                          {/* Link Button */}
+                          {item.link && (
+                            <a
+                              href={item.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 font-medium transition flex items-center gap-1"
+                            >
+                              <span>PubMed</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+
+                          {/* Review Flag */}
+                          <button
+                            onClick={() => toggleReviewFlag(item.id)}
+                            className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1 ${
+                              isReviewFlagged
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
+                                : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                            }`}
+                          >
+                            <Bookmark className="w-3.5 h-3.5 text-amber-400" />
+                            <span>{isReviewFlagged ? 'מסומן לעיון' : 'סמן לעיון'}</span>
+                          </button>
+
+                          {/* Add / Edit Note */}
+                          <button
+                            onClick={() => handleOpenNote(item.id)}
+                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-medium transition flex items-center gap-1"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>{hasNote ? 'ערוך הערה' : 'הוסף הערה'}</span>
+                          </button>
+
+                        </div>
                       )}
 
-                      {/* Note Button */}
-                      {item && (
-                        <button
-                          onClick={() => handleOpenNote(item.id)}
-                          className={`p-2 rounded-xl border transition ${
-                            hasNote
-                              ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
-                              : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-slate-200'
-                          }`}
-                          title="הוסף/ערוך הערה אישית"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                        </button>
-                      )}
-
-                      {/* Link Button */}
-                      {item?.link && (
-                        <a
-                          href={item.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-300 hover:text-indigo-200 transition"
-                          title="פתח קישור ישיר / חיפוש"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -379,77 +394,51 @@ export const TodayView: React.FC<TodayViewProps> = ({
         )}
       </div>
 
-      {/* Target Date Extension Modal */}
-      {isExtendingDate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="glass-card bg-slate-900 border-slate-700 rounded-2xl p-6 max-w-md w-full space-y-4 text-right">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-indigo-400" />
-              <span>התאמת תאריך היעד לשלב 1</span>
-            </h3>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              בחר תאריך חדש לסיום תוכנית 12 השבועות. האלגוריתם יחשב מחדש את הקצב היומי בהתאם לתאריך שתבחר.
-            </p>
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1.5">
-                תאריך יעד חדש:
-              </label>
-              <input
-                type="date"
-                value={newTargetDateInput}
-                onChange={(e) => setNewTargetDateInput(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setIsExtendingDate(false)}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:bg-slate-800"
-              >
-                ביטול
-              </button>
-              <button
-                onClick={handleExtendingTargetDate}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white"
-              >
-                שמור תאריך מותאם
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Note Modal */}
       {activeNoteModalId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="glass-card bg-slate-900 border-slate-700 rounded-2xl p-6 max-w-lg w-full space-y-4 text-right">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-md rounded-2xl p-6 border border-slate-700 bg-slate-900 space-y-4 text-right">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-amber-400" />
-              <span>הערה אישית לפריט #{activeNoteModalId}</span>
+              <span>הערה אישית למאמר</span>
             </h3>
             <textarea
-              rows={4}
               value={tempNoteText}
               onChange={(e) => setTempNoteText(e.target.value)}
-              placeholder="רשום דגשים חשובים, ממצא מרכזי, או נקודות לבחינה..."
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-indigo-500"
+              placeholder="רשום דגשים אישיים..."
+              className="w-full h-32 p-3 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
             />
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setActiveNoteModalId(null)}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-semibold"
               >
                 ביטול
               </button>
               <button
                 onClick={handleSaveNote}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white"
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs text-white font-bold"
               >
                 שמור הערה
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Sequential Article Reader Modal */}
+      {readerArticleIndex !== null && todayArticles[readerArticleIndex] && (
+        <ArticleReaderModal
+          item={todayArticles[readerArticleIndex]}
+          allArticles={todayArticles}
+          currentIndex={readerArticleIndex}
+          onNavigate={(newIndex) => setReaderArticleIndex(newIndex)}
+          onClose={() => setReaderArticleIndex(null)}
+          userState={userState}
+          toggleLiteratureItem={toggleLiteratureItem}
+          toggleReviewFlag={toggleReviewFlag}
+          updateNote={updateNote}
+        />
       )}
 
     </div>
